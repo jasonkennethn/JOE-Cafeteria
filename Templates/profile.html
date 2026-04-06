@@ -31,13 +31,11 @@
 
         <div class="max-w-full">
             <h2 class="text-3xl font-black text-gray-900 dark:text-white truncate mb-1 tracking-tight">
-                {% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% elif guest_profile %}{{
-                guest_profile.full_name }}{% else %}Guest User{% endif %}
+                {% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% elif guest_profile %}{{ guest_profile.full_name }}{% else %}Guest User{% endif %}
             </h2>
 
             <p class="text-gray-500 dark:text-gray-400 font-bold text-sm mb-4">
-                {% if user.is_authenticated %}{{ user.email }}{% elif guest_profile %}{{ guest_profile.phone_number }}{%
-                else %}Not logged in{% endif %}
+                {% if user.is_authenticated %}{{ user.email }}{% elif guest_profile %}{{ guest_profile.phone_number }}{% else %}Not logged in{% endif %}
             </p>
 
             <!-- Role Badge Mapping -->
@@ -77,8 +75,7 @@
                 </div>
                 <div class="form-check form-switch text-2xl m-0">
                     <input class="form-check-input cursor-pointer focus:ring-green-500" type="checkbox" role="switch"
-                        id="vegModeSwitch" onchange="toggleSetting('veg_mode', this.checked)" {% if
-                        request.user.is_veg_mode or request.session.is_veg_mode %}checked{% endif %}>
+                        id="vegModeSwitch" onchange="toggleSetting('veg_mode', this.checked)" {% if request.user.is_veg_mode or request.session.is_veg_mode %}checked{% endif %}>
                 </div>
             </div>
             {% endif %}
@@ -95,8 +92,7 @@
                 </div>
                 <div class="form-check form-switch text-2xl m-0">
                     <input class="form-check-input cursor-pointer focus:ring-purple-500" type="checkbox" role="switch"
-                        id="themeSwitch" onchange="toggleSetting('theme', this.checked)" {% if request.user.dark_theme
-                        or request.session.dark_theme %}checked{% endif %}>
+                        id="themeSwitch" onchange="toggleSetting('theme', this.checked)" {% if request.user.dark_theme or request.session.dark_theme %}checked{% endif %}>
                 </div>
             </div>
 
@@ -143,8 +139,7 @@
             </a>
             {% endif %}
 
-            {% if user_role == 'Kitchen Manager' or user_role == 'Cafeteria Manager' or user_role == 'Cafeteria Owner'
-            %}
+            {% if user_role == 'Kitchen Manager' or user_role == 'Cafeteria Manager' or user_role == 'Cafeteria Owner' %}
             <!-- Manage Menu (Kitchen Manager / Manager / Owner only) -->
             <a href="{% url 'manage_menu' %}"
                 class="p-4 px-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-decoration-none">
