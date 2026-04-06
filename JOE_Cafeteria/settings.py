@@ -12,7 +12,26 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Security settings from environment variables
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-change-me-in-prod')
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
+# ==============================
+# RENDER DEPLOYMENT FIX (CSRF + HOST)
+# ==============================
+
+ALLOWED_HOSTS = [
+    "joe-cafeteria.onrender.com",
+    "localhost",
+    "127.0.0.1",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://joe-cafeteria.onrender.com",
+]
+
+# Security settings for production
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+# (Optional but recommended)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 INSTALLED_APPS = [
     'daphne',
