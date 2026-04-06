@@ -166,7 +166,7 @@ def broadcast_menu_update(menu_item, action='updated'):
         'is_veg': menu_item.is_veg,
         'is_available': menu_item.is_available,
         'current_stock': menu_item.current_stock,
-        'ready_pool_stock': menu_item.ready_pool_stock,
+        'storage_stock': menu_item.storage_stock,
         'image_url': menu_item.image.url if menu_item.image and menu_item.image.name else '',
     }
     

@@ -54,7 +54,7 @@
                         <th class="pb-3 px-2">Item Name</th>
                         <th class="pb-3">Category</th>
                         <th class="pb-3 text-center">Available</th>
-                        <th class="pb-3 text-center">Ready Pool</th>
+                        <th class="pb-3 text-center">Storage QTY</th>
                         <th class="pb-3 text-center">Stock QTY</th>
                     </tr>
                 </thead>
@@ -74,9 +74,9 @@
                         </td>
                         <td class="py-4">
                             <div class="flex items-center justify-center gap-1">
-                                <button onclick="adjustValue('{{ item.id }}', 'ready', -1)" class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-brand hover:bg-orange-200 dark:hover:bg-orange-900/50 font-black text-lg flex items-center justify-center transition-colors active:scale-90">−</button>
-                                <input type="number" id="ready-qty-{{ item.id }}" value="{{ item.ready_pool_stock }}" min="0" onchange="autoSaveStock('{{ item.id }}')" class="w-14 text-center bg-orange-50 dark:bg-orange-900/20 border border-brand/20 rounded-xl px-1 py-1.5 font-black text-brand focus:ring-2 focus:ring-brand text-sm">
-                                <button onclick="adjustValue('{{ item.id }}', 'ready', 1)" class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-brand hover:bg-orange-200 dark:hover:bg-orange-900/50 font-black text-lg flex items-center justify-center transition-colors active:scale-90">+</button>
+                                <button onclick="adjustValue('{{ item.id }}', 'storage', -1)" class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-brand hover:bg-orange-200 dark:hover:bg-orange-900/50 font-black text-lg flex items-center justify-center transition-colors active:scale-90">−</button>
+                                <input type="number" id="ready-qty-{{ item.id }}" value="{{ item.storage_stock }}" min="0" onchange="autoSaveStock('{{ item.id }}')" class="w-14 text-center bg-orange-50 dark:bg-orange-900/20 border border-brand/20 rounded-xl px-1 py-1.5 font-black text-brand focus:ring-2 focus:ring-brand text-sm">
+                                <button onclick="adjustValue('{{ item.id }}', 'storage', 1)" class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-brand hover:bg-orange-200 dark:hover:bg-orange-900/50 font-black text-lg flex items-center justify-center transition-colors active:scale-90">+</button>
                             </div>
                         </td>
                         <td class="py-4">
@@ -96,33 +96,6 @@
 
         
     {% elif role == 'Serving Desk' %}
-        <!-- READY DESK INVENTORY (FCFS POOLING) -->
-        <div class="mb-6 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border-2 border-brand/15 shadow-sm">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h3 class="text-xl font-black text-gray-900 dark:text-white mb-1">Ready Desk Inventory</h3>
-                    <p class="text-sm text-gray-500 m-0">Physical items available at the desk for immediate FCFS handover.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="inline-flex h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
-                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Live Pool</span>
-                </div>
-            </div>
-            
-            <div id="ready-pool-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
-                {% regroup orders_ready_pool by menu_item__name as pooled_items %}
-                {% for item in pooled_items %}
-                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 text-center">
-                    <span class="text-3xl font-black text-brand block mb-1">
-                        {% for entry in item.list %}{% if forloop.first %}{{ entry.total_ready }}{% endif %}{% endfor %}
-                    </span>
-                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-tight block truncate">{{ item.grouper }}</span>
-                </div>
-                {% empty %}
-                <div class="col-span-full py-4 text-center text-gray-400 italic text-sm">No items currently waiting at the desk.</div>
-                {% endfor %}
-            </div>
-        </div>
 
         <!-- WAIT TIME REQUESTS -->
         {% if wait_time_requests %}
@@ -461,7 +434,6 @@
         const sections = [
             'production-board-list', 
             'kitchen-stock-section',
-            'ready-pool-grid', 
             'wait-requests-grid', 
             'serving-orders-grid', 
             'cashier-table-body'
@@ -513,7 +485,7 @@
 
     // Kitchen Manager: ± adjust values and auto-save
     function adjustValue(itemId, field, delta) {
-        const inputId = field === 'ready' ? 'ready-qty-' + itemId : 'qty-' + itemId;
+        const inputId = field === 'storage' ? 'ready-qty-' + itemId : 'qty-' + itemId;
         const input = document.getElementById(inputId);
         if (!input) return;
         let val = parseInt(input.value) || 0;
@@ -546,7 +518,7 @@
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ item_id: itemId, is_available: isAvail, stock: stockQty, ready_pool_stock: readyStockQty })
+                body: JSON.stringify({ item_id: itemId, is_available: isAvail, stock: stockQty, storage_stock: readyStockQty })
             })
             .then(res => res.json())
             .then(data => {
@@ -593,7 +565,5 @@
         setInterval(updateTimers, 1000);
         updateTimers();
     }
-</script>
-
 </script>
 {% endblock %}

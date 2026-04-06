@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, MenuItem, Cart, CartItem, Order, OrderItem, Notification, GuestProfile
+from .models import User, MenuItem, Cart, CartItem, Order, OrderItem, Notification, GuestProfile, Feedback, Report
 
 class CustomUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (
@@ -30,3 +30,5 @@ admin.site.register(Order, OrderAdmin)
 admin.site.register(OrderItem, OrderItemAdmin)
 admin.site.register(Notification)
 admin.site.register(GuestProfile)
+admin.site.register(Feedback)
+admin.site.register(Report)

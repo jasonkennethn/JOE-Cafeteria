@@ -94,6 +94,13 @@
                         <span id="tracker-countdown" class="text-4xl font-mono font-black text-gray-900 dark:text-white tracking-tight">--:--</span>
                     </div>
                 </div>
+
+                <div class="my-4">
+                    <div class="inline-block bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-6 py-3 rounded-2xl shadow-sm">
+                        <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Order Timer</span>
+                        <span id="order-elapsed-timer" class="text-2xl font-mono font-black text-gray-900 dark:text-white tracking-tight">00:00</span>
+                    </div>
+                </div>
                 
                 <!-- Extra time request -->
                 <div id="extra-time-container" class="hidden mt-6 pt-6 border-t border-gray-200 dark:border-gray-700/50">
@@ -135,6 +142,11 @@
             </div>
         </div>
 
+        <div class="mb-8 w-full sm:max-w-sm mx-auto bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/40 p-5 rounded-3xl text-left">
+            <h4 class="font-black text-orange-700 dark:text-orange-300 uppercase tracking-wider text-xs mb-2">Chef Line</h4>
+            <p class="text-sm sm:text-base font-semibold text-gray-800 dark:text-gray-200 mb-0">{{ order_tagline }}</p>
+        </div>
+
         <a href="{% url 'menu' %}" class="btn bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black w-full sm:w-auto rounded-2xl sm:rounded-full px-10 py-4 text-sm sm:text-lg font-bold shadow-lg transition-transform no-print">{% if request.user.role == 'Cashier' %}New Order{% else %}Done{% endif %}</a>
     </div>
 </div>
@@ -153,6 +165,7 @@
     let trackerDeadlineStr = null;
     let extraTimeRequested = 0;
     let socket = null;
+    const orderCreatedAt = new Date('{{ order_created_iso }}').getTime();
 
     function connectWebSocket() {
         const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
@@ -294,9 +307,27 @@
         });
     }
 
+    function updateElapsedTimer() {
+        const el = document.getElementById('order-elapsed-timer');
+        if (!el || Number.isNaN(orderCreatedAt)) return;
+        const elapsedMs = Math.max(0, Date.now() - orderCreatedAt);
+        const totalSeconds = Math.floor(elapsedMs / 1000);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        if (hours > 0) {
+            el.innerText = String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        } else {
+            el.innerText = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+        }
+    }
+
     // Initialize
     connectWebSocket();
     setInterval(updateTrackerClock, 1000);
+    setInterval(updateElapsedTimer, 1000);
+    updateElapsedTimer();
     updateUI();
 </script>
 {% endif %}

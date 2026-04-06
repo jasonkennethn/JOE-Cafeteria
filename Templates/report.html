@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 sm:py-10">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-8 mb-6">
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2">Report an Issue</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-5">For guest and customer users. Reports are sent to owner and manager.</p>
+        <form method="POST" class="grid grid-cols-1 gap-4">
+            {% csrf_token %}
+            <input type="text" name="subject" required placeholder="Subject" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-gray-900 dark:text-white">
+            <textarea name="description" required rows="4" placeholder="Describe the issue in detail..." class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-gray-900 dark:text-white"></textarea>
+            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-2xl font-bold w-full sm:w-fit">Submit Report</button>
+        </form>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-8">
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-4">Your Previous Reports</h2>
+        <div class="space-y-3">
+            {% for report in reports %}
+            <div class="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-4">
+                <div class="flex items-center justify-between gap-3 mb-2">
+                    <h3 class="font-black text-gray-900 dark:text-white mb-0">{{ report.subject }}</h3>
+                    <span class="text-[10px] uppercase tracking-widest px-2 py-1 rounded-full font-black {% if report.status == 'Resolved' %}bg-green-100 text-green-700{% elif report.status == 'Investigating' %}bg-blue-100 text-blue-700{% elif report.status == 'Dismissed' %}bg-gray-200 text-gray-700{% else %}bg-orange-100 text-orange-700{% endif %}">{{ report.status }}</span>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300 mb-2">{{ report.description }}</p>
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ report.created_at|date:"M d, Y h:i A" }}</span>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 dark:text-gray-400 mb-0">No reports submitted yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

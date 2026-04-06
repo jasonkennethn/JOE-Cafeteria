@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 sm:py-10">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-8 mb-6">
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2">Feedback</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-5">Share your experience. Your feedback is sent to cafeteria management.</p>
+        <form method="POST" class="space-y-4">
+            {% csrf_token %}
+            <textarea name="message" required rows="4" placeholder="Tell us what worked well or what we should improve..." class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 text-gray-900 dark:text-white"></textarea>
+            <button type="submit" class="bg-brand hover:bg-orange-600 text-white px-6 py-3 rounded-2xl font-bold">Submit Feedback</button>
+        </form>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-8">
+        <h2 class="text-xl font-black text-gray-900 dark:text-white mb-4">Previous Feedback</h2>
+        <div class="space-y-3">
+            {% for item in feedback_items %}
+            <div class="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 p-4">
+                <p class="text-gray-800 dark:text-gray-200 mb-2">{{ item.message }}</p>
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">{{ item.created_at|date:"M d, Y h:i A" }}</span>
+            </div>
+            {% empty %}
+            <p class="text-gray-500 dark:text-gray-400 mb-0">No feedback submitted yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

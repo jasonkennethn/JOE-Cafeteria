@@ -6,9 +6,10 @@ from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
-from .models import MenuItem, Cart, CartItem, Order, OrderItem, User, Notification, GuestProfile
+from .models import MenuItem, Cart, CartItem, Order, OrderItem, User, Notification, GuestProfile, Feedback, Report
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+from .taglines import FOOD_TAGLINES
 
 
 # ─── Utility ──────────────────────────────────────────────────────────
@@ -30,6 +31,25 @@ def get_cart_count(cart):
     if not cart:
         return 0
     return sum(item.quantity for item in cart.items.all())
+
+
+def get_order_tagline(order_id):
+    if not FOOD_TAGLINES:
+        return "Freshly made and worth the wait."
+    return FOOD_TAGLINES[order_id % len(FOOD_TAGLINES)]
+
+
+def _notify_management(title, message):
+    managers = User.objects.filter(
+        role__in=['Cafeteria Manager', 'Cafeteria Owner'],
+        is_active=True,
+    )
+    for manager in managers:
+        Notification.objects.create(
+            user=manager,
+            title=title,
+            message=message,
+        )
 
 
 # ─── Menu ─────────────────────────────────────────────────────────────
@@ -248,8 +268,10 @@ def checkout_submit(request):
 
             for item in cart.items.all():
                 menu_item = item.menu_item
-                if menu_item.ready_pool_stock >= item.quantity:
-                    menu_item.ready_pool_stock -= item.quantity
+                # STORAGE AUTOMATION:
+                # If enough is in storage, deduct and mark as Ready
+                if menu_item.storage_stock >= item.quantity:
+                    menu_item.storage_stock -= item.quantity
                     menu_item.save()
                     OrderItem.objects.create(
                         order=order,
@@ -258,8 +280,9 @@ def checkout_submit(request):
                         price_at_time=menu_item.price,
                         status='Ready'
                     )
-                elif menu_item.ready_pool_stock > 0:
-                    ready_qty = menu_item.ready_pool_stock
+                elif menu_item.storage_stock > 0:
+                    # Partial from storage, partial from kitchen
+                    ready_qty = menu_item.storage_stock
                     pending_qty = item.quantity - ready_qty
                     
                     OrderItem.objects.create(
@@ -270,7 +293,7 @@ def checkout_submit(request):
                         status='Ready'
                     )
                     
-                    menu_item.ready_pool_stock = 0
+                    menu_item.storage_stock = 0
                     menu_item.save()
                     
                     OrderItem.objects.create(
@@ -281,6 +304,7 @@ def checkout_submit(request):
                         status='Pending'
                     )
                 else:
+                    # All from kitchen
                     OrderItem.objects.create(
                         order=order,
                         menu_item=menu_item,
@@ -353,7 +377,11 @@ def order_success_view(request, order_id):
         if request.user.role not in ['Cashier', 'Serving Desk', 'Kitchen Manager', 'Cafeteria Manager', 'Cafeteria Owner']:
             return redirect('menu')
 
-    return render(request, 'order_success.html', {'order': order})
+    return render(request, 'order_success.html', {
+        'order': order,
+        'order_tagline': get_order_tagline(order.id),
+        'order_created_iso': order.created_at.isoformat(),
+    })
 
 
 # ─── Auth ─────────────────────────────────────────────────────────────
@@ -481,10 +509,6 @@ def dashboard(request):
         context['wait_time_requests'] = Order.objects.filter(
             extra_time_status='Pending', is_disabled=False
         ).order_by('created_at')
-        # Ready Pool for FCFS reallocation UI
-        context['orders_ready_pool'] = OrderItem.objects.filter(
-            status='Ready', order__is_disabled=False
-        ).values('menu_item__id', 'menu_item__name').annotate(total_ready=Sum('quantity')).order_by('menu_item__name')
 
     elif role == 'Cashier':
         context['counter_orders'] = Order.objects.all().order_by('-created_at')[:50]
@@ -608,30 +632,8 @@ def update_item_status(request):
             try:
                 item = OrderItem.objects.get(id=specific_order_item_id)
                 order = item.order
-                
-                # FCFS REALLOCATION:
-                # If this item itself isn't ready but others are, "steal" one for this customer.
-                if item.status != 'Ready':
-                    # Look for ANY ready Item of the SAME type
-                    ready_steal = OrderItem.objects.filter(
-                        menu_item=item.menu_item,
-                        status='Ready'
-                    ).exclude(order=order).order_by('order__pickup_deadline').first()
-                    
-                    if ready_steal:
-                        # Swap! 
-                        # This customer gets served physically.
-                        # The other customer's item is put back to Pending to be re-cooked.
-                        ready_steal.status = 'Pending'
-                        # Reset their deadline slightly if they are now back in queue? 
-                        # Actually, better to just mark as Pending so kitchen sees it again.
-                        ready_steal.save()
-                        
-                        # Mark this one as Ready so we can serve it immediately.
-                        item.status = 'Ready'
-                        item.save()
-                
-                # Now serve the item (which is now guaranteed Ready if a steal happened)
+
+                # Serve only when the specific order item is marked ready.
                 if item.status == 'Ready':
                     item.status = 'Served'
                     item.save()
@@ -827,6 +829,8 @@ def my_orders_view(request):
     if not request.user.is_authenticated and not orders.exists():
         return redirect('login')
 
+    for order in orders:
+        order.tagline = get_order_tagline(order.id)
     return render(request, 'my_orders.html', {'orders': orders})
 
 
@@ -863,6 +867,7 @@ def add_edit_menu_item(request):
         prep_time = request.POST.get('prep_time_minutes', 0)
         inventory_type = request.POST.get('inventory_type', 'continuous')
         current_stock = request.POST.get('current_stock', 100)
+        storage_stock = request.POST.get('storage_stock', 0)
         is_available = request.POST.get('is_available') == 'true'
 
         if item_id:
@@ -878,6 +883,7 @@ def add_edit_menu_item(request):
         item.prep_time_minutes = int(prep_time)
         item.inventory_type = inventory_type
         item.current_stock = int(current_stock)
+        item.storage_stock = int(storage_stock)
         item.is_available = is_available
 
         if request.FILES.get('image'):
@@ -944,6 +950,101 @@ def profile_view(request):
 
     user_role = request.user.role if request.user.is_authenticated else 'Guest'
     return render(request, 'profile.html', {'guest_profile': guest_profile, 'user_role': user_role})
+
+
+def about_us_view(request):
+    developer_details = {
+        'name': 'JOE Cafeteria Development Team',
+        'focus': 'Campus-ready product engineering',
+        'mission': 'Deliver smooth dining operations for students, staff, and service teams.',
+    }
+    return render(request, 'about_us.html', {'developer_details': developer_details})
+
+
+def privacy_policy_view(request):
+    return render(request, 'privacy_policy.html')
+
+
+def feedback_view(request):
+    if request.method == 'POST':
+        message = request.POST.get('message', '').strip()
+        if message:
+            session_key = request.session.session_key
+            if not session_key:
+                request.session.create()
+                session_key = request.session.session_key
+
+            feedback = Feedback.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                session_key=None if request.user.is_authenticated else session_key,
+                message=message,
+            )
+
+            identity = 'Guest user'
+            if request.user.is_authenticated:
+                identity = request.user.get_full_name() or request.user.username
+
+            _notify_management(
+                title='New Feedback Submitted',
+                message=f'Feedback #{feedback.id} from {identity}: {message[:120]}',
+            )
+
+            return redirect('feedback')
+
+    feedback_items = Feedback.objects.none()
+    if request.user.is_authenticated:
+        feedback_items = Feedback.objects.filter(user=request.user)
+    else:
+        session_key = request.session.session_key
+        if session_key:
+            feedback_items = Feedback.objects.filter(session_key=session_key, user=None)
+
+    return render(request, 'feedback.html', {'feedback_items': feedback_items})
+
+
+def report_view(request):
+    # Customer side only: guest users and customer accounts (including Google sign-in).
+    if request.user.is_authenticated and request.user.role != 'Customer':
+        return redirect('profile')
+
+    guest_profile = None
+    if not request.user.is_authenticated:
+        session_key = request.session.session_key
+        if session_key:
+            guest_profile = GuestProfile.objects.filter(session_key=session_key).first()
+        if not guest_profile:
+            return redirect('login')
+
+    if request.method == 'POST':
+        subject = request.POST.get('subject', '').strip()
+        description = request.POST.get('description', '').strip()
+        if subject and description:
+            report = Report.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                guest_profile=guest_profile,
+                subject=subject,
+                description=description,
+            )
+
+            reporter = 'Guest customer'
+            if request.user.is_authenticated:
+                reporter = request.user.get_full_name() or request.user.username
+            elif guest_profile:
+                reporter = guest_profile.full_name
+
+            _notify_management(
+                title='New Customer Report',
+                message=f'Report #{report.id} from {reporter}: {subject}',
+            )
+
+            return redirect('report')
+
+    if request.user.is_authenticated:
+        reports = Report.objects.filter(user=request.user)
+    else:
+        reports = Report.objects.filter(guest_profile=guest_profile)
+
+    return render(request, 'report.html', {'reports': reports})
 
 
 def user_logout(request):
@@ -1104,8 +1205,8 @@ def update_kitchen_stock(request):
     data = json.loads(request.body)
     item = MenuItem.objects.get(id=data['item_id'])
     item.current_stock = int(data['stock'])
-    if 'ready_pool_stock' in data:
-        item.ready_pool_stock = int(data['ready_pool_stock'])
+    if 'storage_stock' in data:
+        item.storage_stock = int(data['storage_stock'])
     item.is_available = data['is_available']
     item.save()
     

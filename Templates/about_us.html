@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 sm:py-10">
+    <div class="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 sm:p-8">
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-3">About Us</h1>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">Built for campus dining that feels effortless for customers and efficient for teams.</p>
+
+        <div class="space-y-4">
+            <div class="rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 p-4">
+                <h2 class="text-sm uppercase tracking-widest font-black text-gray-500 mb-2">Developer</h2>
+                <p class="text-lg font-bold text-gray-900 dark:text-white mb-0">{{ developer_details.name }}</p>
+            </div>
+            <div class="rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 p-4">
+                <h2 class="text-sm uppercase tracking-widest font-black text-gray-500 mb-2">Focus</h2>
+                <p class="text-gray-700 dark:text-gray-300 mb-0">{{ developer_details.focus }}</p>
+            </div>
+            <div class="rounded-2xl bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 p-4">
+                <h2 class="text-sm uppercase tracking-widest font-black text-gray-500 mb-2">Mission</h2>
+                <p class="text-gray-700 dark:text-gray-300 mb-0">{{ developer_details.mission }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

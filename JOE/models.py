@@ -52,10 +52,38 @@ class MenuItem(models.Model):
     prep_time_minutes = models.PositiveIntegerField(default=0)
     inventory_type = models.CharField(max_length=20, choices=[('continuous', 'Continuous'), ('batch', 'Batch'), ('fixed', 'Fixed')], default='continuous')
     current_stock = models.IntegerField(default=100)
-    ready_pool_stock = models.IntegerField(default=0)
+    storage_stock = models.IntegerField(default=0)  # Renamed from ready_pool_stock
 
     def __str__(self):
         return self.name
+
+class Feedback(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name_plural = "Feedback"
+        ordering = ['-created_at']
+
+class Report(models.Model):
+    REPORT_STATUS = (
+        ('Pending', 'Pending'),
+        ('Investigating', 'Investigating'),
+        ('Resolved', 'Resolved'),
+        ('Dismissed', 'Dismissed'),
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    guest_profile = models.ForeignKey('GuestProfile', on_delete=models.SET_NULL, null=True, blank=True)
+    subject = models.CharField(max_length=255)
+    description = models.TextField()
+    status = models.CharField(max_length=50, choices=REPORT_STATUS, default='Pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
 
 class Cart(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)

@@ -154,6 +154,52 @@
             </a>
             {% endif %}
 
+            <a href="{% url 'about_us' %}"
+                class="p-4 px-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-decoration-none">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xl">
+                        <i class="bi bi-info-circle-fill"></i>
+                    </div>
+                    <span class="font-semibold text-lg text-gray-900 dark:text-white">About Us</span>
+                </div>
+                <i class="bi bi-chevron-right text-gray-400"></i>
+            </a>
+
+            <a href="{% url 'privacy_policy' %}"
+                class="p-4 px-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-decoration-none">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center text-xl">
+                        <i class="bi bi-shield-lock-fill"></i>
+                    </div>
+                    <span class="font-semibold text-lg text-gray-900 dark:text-white">Privacy Policy</span>
+                </div>
+                <i class="bi bi-chevron-right text-gray-400"></i>
+            </a>
+
+            <a href="{% url 'feedback' %}"
+                class="p-4 px-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-decoration-none">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl">
+                        <i class="bi bi-chat-heart-fill"></i>
+                    </div>
+                    <span class="font-semibold text-lg text-gray-900 dark:text-white">Feedback</span>
+                </div>
+                <i class="bi bi-chevron-right text-gray-400"></i>
+            </a>
+
+            {% if user_role == 'Customer' or user_role == 'Guest' %}
+            <a href="{% url 'report' %}"
+                class="p-4 px-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-decoration-none">
+                <div class="flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-xl">
+                        <i class="bi bi-flag-fill"></i>
+                    </div>
+                    <span class="font-semibold text-lg text-gray-900 dark:text-white">Report</span>
+                </div>
+                <i class="bi bi-chevron-right text-gray-400"></i>
+            </a>
+            {% endif %}
+
         </div>
     </div>
 

@@ -48,7 +48,7 @@
                         </label>
                     </td>
                     <td class="py-4 text-right pl-4">
-                        <button onclick="editItem({{ item.id }}, '{{ item.name|escapejs }}', '{{ item.description|escapejs }}', '{{ item.price }}', '{{ item.category }}', {{ item.is_veg|yesno:'true,false' }}, {{ item.prep_time_minutes }}, '{{ item.inventory_type }}', {{ item.current_stock }})" class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm"><i class="bi bi-pencil-square"></i> Edit</button>
+                        <button onclick="editItem({{ item.id }}, '{{ item.name|escapejs }}', '{{ item.description|escapejs }}', '{{ item.price }}', '{{ item.category }}', {{ item.is_veg|yesno:'true,false' }}, {{ item.prep_time_minutes }}, '{{ item.inventory_type }}', {{ item.current_stock }}, {{ item.storage_stock }})" class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm"><i class="bi bi-pencil-square"></i> Edit</button>
                     </td>
                 </tr>
                 {% empty %}
@@ -63,21 +63,26 @@
 
 <!-- Add/Edit Modal -->
 <div id="item-modal" class="fixed inset-0 z-[2000] hidden flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300 opacity-0 overflow-y-auto">
-    <div class="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-xl md:max-w-2xl overflow-hidden shadow-2xl transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 mx-auto sm:my-auto relative">
+    <div id="item-modal-panel" class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-t-3xl sm:rounded-3xl w-full sm:max-w-2xl lg:max-w-4xl max-h-[96vh] sm:max-h-[92vh] overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.1)] border border-white/20 dark:border-gray-700/50 transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 mx-auto sm:my-auto relative">
         <!-- Bottom Sheet Handle (Mobile Only) -->
-        <div class="bottom-sheet-handle sm:hidden"></div>
+        <div class="bottom-sheet-handle sm:hidden w-16 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mt-4 mb-2"></div>
         <div class="absolute top-4 right-4">
-            <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full hover:bg-red-100 hover:text-red-500 transition-colors"><i class="bi bi-x-lg"></i></button>
+            <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center bg-gray-200/50 dark:bg-gray-800/50 text-gray-500 dark:text-gray-400 rounded-full hover:bg-red-500 hover:text-white transition-colors"><i class="bi bi-x-lg"></i></button>
         </div>
         
-        <div class="p-8">
-            <h2 id="modal-title" class="text-2xl font-black text-gray-900 dark:text-white mb-6">Add New Item</h2>
+        <div class="p-4 sm:p-6 lg:p-8 overflow-y-auto max-h-[92vh] sm:max-h-[86vh]">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand to-orange-500 flex items-center justify-center text-white shadow-lg">
+                    <i class="bi bi-box-seam font-black text-xl"></i>
+                </div>
+                <h2 id="modal-title" class="text-2xl font-black text-gray-900 dark:text-white">Add New Item</h2>
+            </div>
             
-            <form id="item-form" method="POST" action="{% url 'add_edit_menu_item' %}" enctype="multipart/form-data" class="space-y-4">
+            <form id="item-form" method="POST" action="{% url 'add_edit_menu_item' %}" enctype="multipart/form-data" class="space-y-4 sm:space-y-5">
                 {% csrf_token %}
                 <input type="hidden" name="item_id" id="form-item-id" value="">
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Item Name</label>
                         <input type="text" name="name" id="form-name" required class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
@@ -93,7 +98,7 @@
                     <textarea name="description" id="form-desc" rows="3" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand"></textarea>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Category</label>
                         <select name="category" id="form-category" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
@@ -119,14 +124,18 @@
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Current Purchasing Stock</label>
-                        <input type="number" name="current_stock" id="form-stock" value="100" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Kitchen Stock</label>
+                        <input type="number" name="current_stock" id="form-stock" value="100" class="w-full bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Storage Stock</label>
+                        <input type="number" name="storage_stock" id="form-storage" value="0" class="w-full bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Prep Time (Mins)</label>
-                        <input type="number" name="prep_time_minutes" id="form-prep" value="0" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                        <input type="number" name="prep_time_minutes" id="form-prep" value="0" class="w-full bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
                     </div>
                 </div>
 
@@ -144,8 +153,8 @@
                     <input type="file" name="image" id="form-image" accept="image/*" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
                 </div>
 
-                <div class="mt-8">
-                    <button type="submit" class="w-full bg-brand hover:bg-orange-600 text-white font-black text-xl py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"><i class="bi bi-cloud-arrow-up-fill mr-2"></i> Save Item Parameters</button>
+                <div class="mt-6 sm:mt-8">
+                    <button type="submit" class="w-full bg-brand hover:bg-orange-600 text-white font-black text-base sm:text-xl py-3 sm:py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"><i class="bi bi-cloud-arrow-up-fill mr-2"></i> Save Item Parameters</button>
                 </div>
             </form>
         </div>
@@ -157,19 +166,21 @@
 {% block scripts %}
 <script>
     const modal = document.getElementById('item-modal');
-    const modalContainer = modal.querySelector('div');
+    const modalContainer = document.getElementById('item-modal-panel');
     const form = document.getElementById('item-form');
     
     document.getElementById('form-available').addEventListener('change', function(e) {
         document.getElementById('form-available-hidden').value = e.target.checked ? 'true' : 'false';
     });
 
-    function openModal() {
-        form.reset();
-        document.getElementById('form-item-id').value = '';
-        document.getElementById('modal-title').textContent = 'Add New Item';
-        document.getElementById('form-available-hidden').value = 'true';
-        document.getElementById('form-available').checked = true;
+    function openModal(shouldReset = true) {
+        if (shouldReset) {
+            form.reset();
+            document.getElementById('form-item-id').value = '';
+            document.getElementById('modal-title').textContent = 'Add New Item';
+            document.getElementById('form-available-hidden').value = 'true';
+            document.getElementById('form-available').checked = true;
+        }
         
         modal.classList.remove('hidden');
         setTimeout(() => {
@@ -189,8 +200,14 @@
             modal.classList.add('hidden');
         }, 300);
     }
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
     
-    function editItem(id, name, desc, price, category, isVeg, prep, invType, stock) {
+    function editItem(id, name, desc, price, category, isVeg, prep, invType, stock, storageStock) {
         document.getElementById('form-item-id').value = id;
         document.getElementById('form-name').value = name;
         document.getElementById('form-desc').value = desc;
@@ -200,9 +217,10 @@
         document.getElementById('form-prep').value = prep;
         document.getElementById('form-inventory').value = invType;
         document.getElementById('form-stock').value = stock;
+        document.getElementById('form-storage').value = storageStock || 0;
         
         document.getElementById('modal-title').textContent = 'Edit Menu Item';
-        openModal();
+        openModal(false);
     }
     
     form.addEventListener('submit', function(e) {

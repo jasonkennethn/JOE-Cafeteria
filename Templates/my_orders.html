@@ -61,6 +61,11 @@
                     {% endfor %}
                 </div>
 
+                <div class="mt-4 rounded-2xl border border-orange-100 dark:border-orange-900/40 bg-orange-50 dark:bg-orange-900/20 px-4 py-3">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-300 block mb-1">Chef Line</span>
+                    <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-0">{{ order.tagline }}</p>
+                </div>
+
                 <!-- Quick Actions -->
                 <div class="flex gap-3 mt-5">
                     <a href="{% url 'order_success' order.id %}" class="flex-1 btn-smooth btn-brand-fluid py-3 text-sm shadow-md text-center no-underline">
