@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w-[95%] sm:w-[85%] md:w-[75%] lg:w-[60%] mx-auto py-[5%]">
+    <div class="flex items-center gap-4 mb-8">
+        <a href="{% url 'menu' %}" class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:scale-110 active:scale-95 transition-all">
+            <i class="bi bi-arrow-left text-lg"></i>
+        </a>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-0">My Orders</h1>
+    </div>
+
+    <div class="space-y-6" id="orders-container">
+        {% for order in orders %}
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-all">
+            <!-- Order Header -->
+            <div class="p-5 sm:p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-gray-100 dark:border-gray-700">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <span class="text-xl sm:text-2xl font-black text-gray-900 dark:text-white">#{{ order.id }}</span>
+                        <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border
+                            {% if order.status == 'Completed' %}bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800 dark:text-green-400
+                            {% elif order.status == 'Pending' %}bg-orange-50 text-orange-600 border-orange-200 dark:bg-orange-900/20 dark:border-orange-800 dark:text-orange-400
+                            {% elif order.status == 'Partial' %}bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-400
+                            {% else %}bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400{% endif %}">
+                            {% if order.status == 'Completed' %}<i class="bi bi-check-circle-fill"></i>{% elif order.status == 'Pending' %}<i class="bi bi-hourglass-split"></i>{% elif order.status == 'Partial' %}<i class="bi bi-pie-chart-fill"></i>{% endif %}
+                            {{ order.status }}
+                        </span>
+                    </div>
+                    <span class="text-xs text-gray-400 dark:text-gray-500 font-medium"><i class="bi bi-clock mr-1"></i>{{ order.created_at|date:"M d, Y · h:i A" }}</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="text-xl sm:text-2xl font-black text-brand">₹{{ order.total_amount }}</span>
+                    <span class="inline-block px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border
+                        {% if order.payment_method == 'Online' %}bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800
+                        {% elif order.payment_method == 'Cash' %}bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800
+                        {% else %}bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800{% endif %}">
+                        {{ order.payment_method }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Order Items -->
+            <div class="p-5 sm:p-6">
+                <div class="space-y-2.5">
+                    {% for item in order.items.all %}
+                    <div class="flex justify-between items-center py-2 px-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <span class="w-7 h-7 rounded-lg bg-brand/10 text-brand text-xs font-black flex items-center justify-center">{{ item.quantity }}x</span>
+                            <span class="font-semibold text-gray-900 dark:text-white text-sm">{{ item.menu_item.name }}</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-black uppercase tracking-widest
+                                {% if item.status == 'Served' %}text-green-500
+                                {% elif item.status == 'Ready' %}text-blue-500
+                                {% else %}text-orange-400{% endif %}">
+                                {{ item.status }}
+                            </span>
+                            <span class="font-bold text-gray-600 dark:text-gray-400 text-sm">₹{{ item.price_at_time }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="flex gap-3 mt-5">
+                    <a href="{% url 'order_success' order.id %}" class="flex-1 btn-smooth btn-brand-fluid py-3 text-sm shadow-md text-center no-underline">
+                        <i class="bi bi-eye mr-1"></i> View Your Order
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+            <div class="w-24 h-24 bg-gray-50 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="bi bi-bag-x text-4xl text-gray-300 dark:text-gray-600"></i>
+            </div>
+            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2">No orders yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 text-sm mb-8 max-w-xs mx-auto">Start ordering your favorite meals — they'll appear here.</p>
+            <a href="{% url 'menu' %}" class="btn-smooth btn-brand-fluid px-8 py-3 shadow-lg no-underline">Browse Menu</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

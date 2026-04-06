@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w-[96%] sm:w-[90%] md:w-[80%] lg:w-[60%] xl:w-[50%] mx-auto py-3 sm:py-6 md:py-8">
+    <div class="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+        <div class="flex items-center gap-2 sm:gap-3">
+            <a href="{% url 'menu' %}" class="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400 active:scale-90 transition-transform">
+                <i class="bi bi-arrow-left text-sm sm:text-base"></i>
+            </a>
+            <h1 class="text-lg sm:text-2xl md:text-3xl font-black text-gray-900 dark:text-white mb-0">Notifications</h1>
+        </div>
+        <div class="flex gap-1.5 sm:gap-2" id="notif-controls">
+            <button onclick="notifAction('read_all')" class="px-3 sm:px-5 py-1.5 sm:py-2 bg-orange-50 text-brand text-[10px] sm:text-xs font-black rounded-xl hover:bg-brand hover:text-white transition-all border-0 whitespace-nowrap shadow-sm active:scale-95">Read All</button>
+            <button id="clear-all-btn" onclick="confirmClearAll()" class="px-3 sm:px-5 py-1.5 sm:py-2 bg-gray-100 text-gray-500 text-[10px] sm:text-xs font-black rounded-xl hover:bg-red-500 hover:text-white transition-all border-0 whitespace-nowrap shadow-sm active:scale-95">Clear All</button>
+        </div>
+    </div>
+
+    <div class="space-y-2 sm:space-y-3">
+        {% for notif in notifications %}
+        <div id="notif-{{ notif.id }}" 
+             class="relative bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm transition-all overflow-hidden {% if not notif.is_read %}border-l-[3px] border-l-brand bg-orange-50/20{% endif %}"
+             >
+            
+            <!-- Clickable Header -->
+            <div class="p-3 sm:p-4 flex justify-between items-start cursor-pointer active:bg-gray-50 dark:active:bg-gray-700/50 transition-colors"
+                 onclick="toggleNotif('{{ notif.id }}', '{{ notif.is_read }}')">
+                <div class="flex-1 min-w-0 pr-6">
+                    <div class="flex items-center gap-1.5 mb-0.5">
+                        <h3 class="font-bold text-gray-900 dark:text-white text-sm sm:text-base m-0 leading-tight truncate">{{ notif.title }}</h3>
+                        {% if not notif.is_read %}
+                        <span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse flex-shrink-0"></span>
+                        {% endif %}
+                    </div>
+                    <p class="text-gray-500 dark:text-gray-400 text-[11px] sm:text-xs m-0 line-clamp-1 leading-relaxed">
+                        {{ notif.message }}
+                    </p>
+                    <span class="text-[9px] sm:text-[10px] text-gray-400 font-medium uppercase mt-1 block">{{ notif.created_at|timesince }} ago</span>
+                </div>
+                
+                <div class="flex-shrink-0 mt-0.5 ml-2">
+                    <i class="bi bi-chevron-down text-gray-300 text-xs transition-transform duration-300 notif-chevron-{{ notif.id }}" style="display: block;"></i>
+                </div>
+            </div>
+
+            <!-- Inline Expandable Content (NO popup) -->
+            <div id="notif-body-{{ notif.id }}" class="notif-expandable">
+                <div class="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
+                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-100 dark:border-gray-700">
+                        <p class="text-gray-700 dark:text-gray-300 text-xs sm:text-sm leading-relaxed m-0">{{ notif.message }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clear button -->
+            <button onclick="event.stopPropagation(); notifAction('clear', '{{ notif.id }}')" 
+                    class="absolute top-3 right-3 text-gray-300 hover:text-red-500 transition-colors p-0.5">
+                <i class="bi bi-x text-base sm:text-lg"></i>
+            </button>
+        </div>
+        {% empty %}
+        <div class="text-center py-16 sm:py-20">
+            <div class="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="bi bi-bell-slash text-2xl sm:text-3xl text-gray-300 dark:text-gray-600"></i>
+            </div>
+            <h3 class="text-base sm:text-xl font-bold text-gray-900 dark:text-white">All caught up!</h3>
+            <p class="text-gray-500 dark:text-gray-400 mt-1 text-xs sm:text-sm">No new notifications for you right now.</p>
+            <a href="{% url 'menu' %}" class="btn-smooth btn-brand-fluid mt-4 px-6 py-2 text-xs sm:text-sm">Back to Menu</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateGlobalBadge(subtractCount = 1, forceZero = false) {
+        const badge = document.getElementById('global-notif-count');
+        if (badge) {
+            if (forceZero) {
+                badge.style.opacity = '0';
+                setTimeout(() => badge.remove(), 300);
+            } else {
+                let current = parseInt(badge.innerText) || 0;
+                current = Math.max(0, current - subtractCount);
+                if (current === 0) {
+                    badge.style.opacity = '0';
+                    setTimeout(() => badge.remove(), 300);
+                } else {
+                    badge.innerText = current;
+                }
+            }
+        }
+    }
+
+    function notifAction(action, notifId = null) {
+        fetch('{% url "notification_action" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ action: action, notif_id: notifId })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                if (action === 'clear_all' || action === 'read_all') {
+                    updateGlobalBadge(0, true);
+                    location.reload();
+                } else if (action === 'clear') {
+                    const el = document.getElementById(`notif-${notifId}`);
+                    if (el && el.querySelector('.animate-pulse')) {
+                        updateGlobalBadge(1);
+                    }
+                    if (el) {
+                        el.style.transform = 'translateX(40px)';
+                        el.style.opacity = '0';
+                        setTimeout(() => {
+                            el.style.maxHeight = '0';
+                            el.style.marginBottom = '0';
+                            el.style.padding = '0';
+                            el.style.border = 'none';
+                            setTimeout(() => el.remove(), 300);
+                        }, 250);
+                    }
+                } else if (action === 'mark_read') {
+                    const el = document.getElementById(`notif-${notifId}`);
+                    if (el) {
+                        el.classList.remove('border-l-[3px]', 'border-l-brand', 'bg-orange-50/20');
+                        const dot = el.querySelector('.animate-pulse');
+                        if (dot) {
+                            dot.style.opacity = '0';
+                            setTimeout(() => dot.remove(), 300);
+                            updateGlobalBadge(1);
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function confirmClearAll() {
+        const btn = document.getElementById('clear-all-btn');
+        if (btn.innerText === 'Are you sure?') {
+            notifAction('clear_all');
+        } else {
+            btn.innerText = 'Are you sure?';
+            btn.classList.add('bg-red-50', 'text-red-600');
+            btn.classList.remove('bg-gray-100', 'text-gray-500');
+            setTimeout(() => {
+                btn.innerText = 'Clear All';
+                btn.classList.remove('bg-red-50', 'text-red-600');
+                btn.classList.add('bg-gray-100', 'text-gray-500');
+            }, 3000);
+        }
+    }
+
+    // Inline expand/collapse — NO popup modal
+    function toggleNotif(id, isRead) {
+        const body = document.getElementById(`notif-body-${id}`);
+        const chevron = document.querySelector(`.notif-chevron-${id}`);
+        if (!body) return;
+
+        const isExpanded = body.classList.contains('expanded');
+        
+        // Collapse all others first
+        document.querySelectorAll('.notif-expandable.expanded').forEach(el => {
+            if (el.id !== `notif-body-${id}`) {
+                el.classList.remove('expanded');
+                const otherId = el.id.replace('notif-body-', '');
+                const otherChevron = document.querySelector(`.notif-chevron-${otherId}`);
+                if (otherChevron) otherChevron.style.transform = 'rotate(0deg)';
+            }
+        });
+
+        if (isExpanded) {
+            body.classList.remove('expanded');
+            if (chevron) chevron.style.transform = 'rotate(0deg)';
+        } else {
+            body.classList.add('expanded');
+            if (chevron) chevron.style.transform = 'rotate(180deg)';
+            if (isRead === 'False') {
+                notifAction('mark_read', id);
+            }
+        }
+    }
+</script>
+{% endblock %}

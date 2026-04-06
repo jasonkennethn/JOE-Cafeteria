@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Error — JOE Cafeteria</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #f8fafc 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .error-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 480px;
+            animation: fadeUp 0.8s ease backwards;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .error-code {
+            font-size: clamp(6rem, 18vw, 10rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, #64748b, #334155);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
+            letter-spacing: -0.04em;
+            margin-bottom: 0.5rem;
+        }
+        .error-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #64748b, #334155);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem auto;
+            box-shadow: 0 20px 60px rgba(100, 116, 139, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(0.95); }
+        }
+        .error-icon i { font-size: 2rem; color: white; }
+        h1 { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin-bottom: 0.75rem; }
+        p { color: #64748b; font-size: 0.95rem; font-weight: 500; line-height: 1.6; margin-bottom: 2rem; }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #fb923c, #ea580c);
+            color: white;
+            padding: 14px 32px;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-decoration: none;
+            box-shadow: 0 8px 30px rgba(251, 146, 60, 0.3);
+            transition: all 0.3s ease;
+        }
+        .back-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(251, 146, 60, 0.4); }
+        .back-btn:active { transform: scale(0.96); }
+        .retry-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            color: #1e293b;
+            padding: 14px 32px;
+            border-radius: 9999px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            text-decoration: none;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+            margin-left: 12px;
+            cursor: pointer;
+        }
+        .retry-btn:hover { border-color: #fb923c; color: #ea580c; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-icon">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div class="error-code">500</div>
+        <h1>Something Went Wrong</h1>
+        <p>Our kitchen servers are having a temporary hiccup. Don't worry — our team has been notified and is fixing it. Please try again in a moment.</p>
+        <div>
+            <a href="/" class="back-btn">
+                <i class="bi bi-house-door-fill"></i> Back to Menu
+            </a>
+            <a href="javascript:location.reload()" class="retry-btn">
+                <i class="bi bi-arrow-clockwise"></i> Retry
+            </a>
+        </div>
+    </div>
+</body>
+</html>

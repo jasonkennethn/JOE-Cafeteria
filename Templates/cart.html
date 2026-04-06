@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="fluid-container max-w-4xl">
+    <div class="flex items-center gap-4 mb-6">
+        <a href="{% url 'menu' %}"
+            class="w-10 h-10 flex items-center justify-center rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:scale-110 active:scale-95 transition-all">
+            <i class="bi bi-arrow-left text-lg"></i>
+        </a>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-0">Your Cart</h1>
+    </div>
+
+    <div class="glass-panel dynamic-card p-4 sm:p-6 md:p-8">
+        {% if cart_count > 0 %}
+        <div class="divide-y divide-gray-100 dark:divide-gray-800 mb-6" id="cart-items-container">
+            {% for item in cart.items.all %}
+            <div class="py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all duration-500 ease-out overflow-hidden {% if not item.menu_item.is_available or item.menu_item.current_stock == 0 %}item-frozen{% endif %}" id="cart-row-{{ item.menu_item.id }}">
+                <div class="flex items-center gap-4 w-full sm:w-[55%]">
+                    <div class="relative flex-shrink-0">
+                        {% if item.menu_item.image %}
+                        <img src="{{ item.menu_item.image.url }}"
+                            class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl object-cover border border-gray-100 dark:border-gray-700">
+                        {% else %}
+                        <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600">
+                            <i class="bi bi-image text-xl"></i>
+                        </div>
+                        {% endif %}
+                        {% if not item.menu_item.is_available or item.menu_item.current_stock == 0 %}
+                        <div class="absolute inset-0 bg-white/40 dark:bg-black/40 rounded-2xl backdrop-blur-[1px] flex items-center justify-center">
+                            <i class="bi bi-clock-history text-xl text-gray-900 dark:text-white"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="min-w-0">
+                        <h4 class="font-bold text-gray-900 dark:text-white mb-1 text-base truncate">{{ item.menu_item.name }}</h4>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3.5 h-3.5 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center p-[2px]">
+                                <div class="w-full h-full rounded-full {% if item.menu_item.is_veg %}bg-green-500{% else %}bg-red-500{% endif %}"></div>
+                            </div>
+                            <span class="text-gray-500 font-bold text-xs dark:text-gray-400">₹<span class="item-price-val" data-price="{{ item.menu_item.price }}">{{ item.menu_item.price }}</span></span>
+                        </div>
+                        {% if not item.menu_item.is_available or item.menu_item.current_stock == 0 %}
+                        <span class="text-[10px] font-black text-red-500 uppercase tracking-tighter mt-1 block">Currently Unavailable</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-[40%]">
+                    <!-- Add/Subtract Controls -->
+                    <div class="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-1 px-2.5 border border-gray-100 dark:border-gray-700/50 shadow-inner">
+                        <button onclick="updateCart('{{ item.menu_item.id }}', 'remove')"
+                            class="w-7 h-7 flex items-center justify-center rounded-xl bg-white dark:bg-gray-700 shadow-sm text-brand hover:scale-110 active:scale-90 transition-all"><i class="bi bi-dash-lg"></i></button>
+                        <span id="qty-{{ item.menu_item.id }}" data-stock="{{ item.menu_item.current_stock }}" class="font-black text-sm w-5 text-center">{{ item.quantity }}</span>
+                        <button onclick="updateCart('{{ item.menu_item.id }}', 'add')"
+                            class="w-7 h-7 flex items-center justify-center rounded-xl bg-white dark:bg-gray-700 shadow-sm text-brand hover:scale-110 active:scale-90 transition-all"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+
+                    <div class="text-right min-w-[70px]">
+                        <span class="font-black text-lg text-brand">₹<span id="row-total-{{ item.menu_item.id }}">{{ item.total_price }}</span></span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="border-t border-gray-100 dark:border-gray-800 pt-6">
+            <div class="flex justify-between items-center mb-6 bg-gray-50/50 dark:bg-gray-800/30 p-4 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+                <span class="text-sm font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Grand Total</span>
+                <span class="text-2xl font-black text-brand">₹<span id="cart-total-price">{{ cart.total_price }}</span></span>
+            </div>
+
+            <a href="{% url 'checkout' %}" class="w-full btn-smooth btn-brand-fluid py-4 text-lg shadow-xl">
+                Review & Checkout <i class="bi bi-arrow-right-short text-2xl ml-1"></i>
+            </a>
+        </div>
+        {% else %}
+        <div class="text-center py-20">
+            <div class="w-24 h-24 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-6">
+                <i class="bi bi-cart-x text-4xl text-gray-200 dark:text-gray-700"></i>
+            </div>
+            <h3 class="text-xl font-black text-gray-900 dark:text-white mb-2">Cart is feeling lonely</h3>
+            <p class="text-gray-500 mb-8 dark:text-gray-400 text-sm max-w-xs mx-auto">Add some delicious items to get started with your order.</p>
+            <a href="{% url 'menu' %}" class="btn-smooth btn-brand-fluid px-10 py-3 shadow-lg">Browse Menu</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function updateCart(itemId, action) {
+        const qtyEl = document.getElementById(`qty-${itemId}`);
+        let maxStock = 100;
+        if (qtyEl) {
+            maxStock = parseInt(qtyEl.getAttribute('data-stock') || '100');
+        }
+
+        if (action === 'add') {
+            if (maxStock <= 0) {
+                return; // Prevent adding more
+            }
+        }
+        fetch('{% url "update_cart" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ item_id: itemId, action: action })
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    if (action === 'add' && qtyEl) {
+                        qtyEl.setAttribute('data-stock', maxStock - 1);
+                    } else if (action === 'remove' && qtyEl) {
+                        qtyEl.setAttribute('data-stock', maxStock + 1);
+                    }
+                    
+                    const row = document.getElementById(`cart-row-${itemId}`);
+                    const rowTotalEl = document.getElementById(`row-total-${itemId}`);
+                    const cartTotalEl = document.getElementById('cart-total-price');
+
+                    if (data.quantity === 0) {
+                        if (row) {
+                            // Smooth removal animation
+                            row.style.opacity = '0';
+                            row.style.transform = 'translateX(20px)';
+                            setTimeout(() => {
+                                row.style.maxHeight = '0';
+                                row.style.paddingTop = '0';
+                                row.style.paddingBottom = '0';
+                                row.style.marginTop = '0';
+                                row.style.marginBottom = '0';
+                                setTimeout(() => {
+                                    row.remove();
+                                    if (data.cart_count === 0) location.reload();
+                                }, 500);
+                            }, 300);
+                        }
+                    } else {
+                        if (qtyEl) qtyEl.textContent = data.quantity;
+                        
+                        // Dynamically update row total
+                        if (rowTotalEl) {
+                            const priceEl = row.querySelector('.item-price-val');
+                            if (priceEl) {
+                                const price = parseFloat(priceEl.dataset.price);
+                                rowTotalEl.textContent = (price * data.quantity).toFixed(2);
+                            }
+                        }
+                    }
+                    
+                    // Update main total
+                    if (cartTotalEl) {
+                        cartTotalEl.textContent = parseFloat(data.cart_total).toFixed(2);
+                        // Add highlight pulse
+                        cartTotalEl.classList.remove('scale-110');
+                        void cartTotalEl.offsetWidth; // Trigger reflow
+                        cartTotalEl.classList.add('transition-transform', 'duration-300', 'scale-110');
+                        setTimeout(() => cartTotalEl.classList.remove('scale-110'), 300);
+                    }
+                }
+            });
+    }
+</script>
+{% endblock %}

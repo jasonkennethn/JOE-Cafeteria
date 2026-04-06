@@ -1,0 +1,599 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w-[96%] sm:w-[92%] md:w-[88%] lg:w-[80%] xl:w-[75%] mx-auto mt-4 sm:mt-6 md:mt-8 flex flex-col gap-4 sm:gap-5 md:gap-6 pb-8">
+    <div class="dashboard-hero bg-gradient-to-r from-brand to-orange-500 rounded-xl sm:rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-lg text-white">
+        <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold mb-1">Hello, {{ role }}!</h1>
+        <p class="text-white/75 text-xs sm:text-sm md:text-base font-medium m-0">Welcome to your {{ role }} Dashboard.</p>
+    </div>
+
+    {% if role == 'Kitchen Manager' %}
+        <!-- KITCHEN DASHBOARD -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
+            <h2 class="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white mt-1 m-0">Active Production Board <span class="text-[10px] sm:text-xs font-medium text-gray-500 align-middle ml-1 tracking-wide">(Grouped Batches)</span></h2>
+            <a href="{% url 'manage_menu' %}" class="bg-brand text-white px-4 sm:px-5 py-2 rounded-xl sm:rounded-2xl font-bold text-xs sm:text-sm shadow-md transition-transform active:scale-95 whitespace-nowrap flex items-center gap-1.5"><i class="bi bi-gear-fill"></i> Manage Menu</a>
+        </div>
+        <div id="production-board-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            {% for group in pending_item_groups %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm border-l-[3px] border-l-brand border-y border-r border-gray-100 dark:border-gray-700 flex flex-col hover:shadow-md transition-shadow relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-24 h-24 bg-orange-50 dark:bg-orange-900/20 rounded-full group-hover:scale-150 transition-transform duration-500 -z-0"></div>
+                <div class="flex justify-between items-start mb-6 relative z-10">
+                    <div>
+                        <span class="text-[10px] font-black text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] block mb-1">Live Demand</span>
+                        <h3 class="text-2xl font-black text-gray-900 dark:text-white mb-0 leading-tight pr-2">{{ group.menu_item__name }}</h3>
+                    </div>
+                    <div class="w-14 h-14 bg-orange-100 border border-brand/20 rounded-[1.2rem] flex items-center justify-center shrink-0 shadow-inner">
+                        <span class="text-2xl font-black text-brand">{{ group.total_qty }}</span>
+                    </div>
+                </div>
+                
+                <form onsubmit="submitAction(event, this)" method="POST" action="{% url 'update_item_status' %}" class="mt-auto relative z-10 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    {% csrf_token %}
+                    <input type="hidden" name="menu_item_id" value="{{ group.menu_item__id }}">
+                    <input type="hidden" name="status" value="Ready">
+                    <button type="submit" class="w-full bg-gray-900 dark:bg-white hover:bg-black text-white dark:text-gray-900 rounded-2xl py-3 font-bold text-[15px] shadow-sm hover:shadow-md transition-all flex justify-center items-center gap-2">
+                        <i class="bi bi-fire text-orange-500 dark:text-brand text-lg"></i> Mark Batch Ready
+                    </button>
+                </form>
+            </div>
+            {% empty %}
+            <div class="col-span-full py-16 text-center text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-dashed border-gray-200 dark:border-gray-700">
+                <i class="bi bi-check2-all text-6xl text-gray-300 dark:text-gray-600 mb-4 block"></i>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Kitchen is clear!</h3>
+                <p>No active item batches pending at the moment. Take a break!</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- KITCHEN STOCK MANAGEMENT -->
+        <h2 class="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white mt-8 sm:mt-10 mb-3 sm:mb-4">Stock & Inventory Management</h2>
+        <div id="kitchen-stock-section" class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
+                        <th class="pb-3 px-2">Item Name</th>
+                        <th class="pb-3">Category</th>
+                        <th class="pb-3 text-center">Available</th>
+                        <th class="pb-3 text-center">Ready Pool</th>
+                        <th class="pb-3 text-center">Stock QTY</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+                    {% for item in menu_items %}
+                    <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors" id="stock-row-{{ item.id }}">
+                        <td class="py-4 px-2 font-bold text-gray-900 dark:text-white">{{ item.name }}</td>
+                        <td class="py-4 text-gray-500 font-medium text-sm">{{ item.category }}</td>
+                        <td class="py-4 text-center">
+                            <div class="flex items-center justify-center gap-2">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="avail-{{ item.id }}" class="sr-only peer" {% if item.is_available %}checked{% endif %} onchange="autoSaveStock('{{ item.id }}')">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-500"></div>
+                                </label>
+                                <span id="avail-label-{{ item.id }}" class="text-[10px] font-black uppercase tracking-widest {% if item.is_available %}text-green-600{% else %}text-gray-400{% endif %}">{% if item.is_available %}Active{% else %}Off{% endif %}</span>
+                            </div>
+                        </td>
+                        <td class="py-4">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="adjustValue('{{ item.id }}', 'ready', -1)" class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-brand hover:bg-orange-200 dark:hover:bg-orange-900/50 font-black text-lg flex items-center justify-center transition-colors active:scale-90">−</button>
+                                <input type="number" id="ready-qty-{{ item.id }}" value="{{ item.ready_pool_stock }}" min="0" onchange="autoSaveStock('{{ item.id }}')" class="w-14 text-center bg-orange-50 dark:bg-orange-900/20 border border-brand/20 rounded-xl px-1 py-1.5 font-black text-brand focus:ring-2 focus:ring-brand text-sm">
+                                <button onclick="adjustValue('{{ item.id }}', 'ready', 1)" class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-brand hover:bg-orange-200 dark:hover:bg-orange-900/50 font-black text-lg flex items-center justify-center transition-colors active:scale-90">+</button>
+                            </div>
+                        </td>
+                        <td class="py-4">
+                            <div class="flex items-center justify-center gap-1">
+                                <button onclick="adjustValue('{{ item.id }}', 'stock', -1)" class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-black text-lg flex items-center justify-center transition-colors active:scale-90">−</button>
+                                <input type="number" id="qty-{{ item.id }}" value="{{ item.current_stock }}" min="0" onchange="autoSaveStock('{{ item.id }}')" class="w-14 text-center bg-gray-100 dark:bg-gray-900 border-none rounded-xl px-1 py-1.5 font-black text-gray-900 dark:text-white focus:ring-2 focus:ring-brand text-sm">
+                                <button onclick="adjustValue('{{ item.id }}', 'stock', 1)" class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 font-black text-lg flex items-center justify-center transition-colors active:scale-90">+</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        
+
+        
+    {% elif role == 'Serving Desk' %}
+        <!-- READY DESK INVENTORY (FCFS POOLING) -->
+        <div class="mb-6 p-4 sm:p-5 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border-2 border-brand/15 shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl font-black text-gray-900 dark:text-white mb-1">Ready Desk Inventory</h3>
+                    <p class="text-sm text-gray-500 m-0">Physical items available at the desk for immediate FCFS handover.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex h-3 w-3 rounded-full bg-green-500 animate-pulse"></span>
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Live Pool</span>
+                </div>
+            </div>
+            
+            <div id="ready-pool-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 sm:gap-3">
+                {% regroup orders_ready_pool by menu_item__name as pooled_items %}
+                {% for item in pooled_items %}
+                <div class="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 text-center">
+                    <span class="text-3xl font-black text-brand block mb-1">
+                        {% for entry in item.list %}{% if forloop.first %}{{ entry.total_ready }}{% endif %}{% endfor %}
+                    </span>
+                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-tight block truncate">{{ item.grouper }}</span>
+                </div>
+                {% empty %}
+                <div class="col-span-full py-4 text-center text-gray-400 italic text-sm">No items currently waiting at the desk.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- WAIT TIME REQUESTS -->
+        {% if wait_time_requests %}
+        <h2 class="text-2xl font-black text-gray-900 dark:text-white mt-8 mb-4 flex items-center gap-2"><i class="bi bi-clock-history text-orange-500"></i> Wait Time Extensions</h2>
+        <div id="wait-requests-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            {% for req in wait_time_requests %}
+            <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-orange-200 dark:border-orange-900 flex flex-col relative overflow-hidden">
+                <div class="flex justify-between items-center mb-4 border-b border-gray-100 dark:border-gray-700 pb-3">
+                    <span class="text-xs font-black text-gray-500 uppercase tracking-widest">Order #{{ req.id }}</span>
+                    <span class="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">+{{ req.extra_time_requested }} MIN REQ</span>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6">Customer needs more time to arrive.</h3>
+                <div class="flex gap-3 mt-auto">
+                    <form onsubmit="submitAction(event, this)" method="POST" action="{% url 'handle_time_request' req.id %}" class="flex-1">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="accept">
+                        <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white rounded-xl py-2 font-bold transition-all shadow-sm">Accept</button>
+                    </form>
+                    <form onsubmit="submitAction(event, this)" method="POST" action="{% url 'handle_time_request' req.id %}" class="flex-1">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="reject">
+                        <button type="submit" class="w-full bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl py-2 font-bold transition-all border border-red-200 dark:border-red-900/50">Reject</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div id="serving-orders-grid" class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {% for order in orders %}
+            <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-brand/30 dark:border-brand/50 bg-orange-50/50 dark:bg-orange-900/10 flex flex-col relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-brand rounded-bl-full -z-0 opacity-5 dark:opacity-10"></div>
+                
+                <div class="flex justify-between items-center mb-6 pb-4 border-b border-brand/20 relative z-10 w-full">
+                    <div class="flex-1 min-w-0 pr-4">
+                        <span class="text-[10px] font-black text-brand uppercase tracking-[0.2em] block mb-1">Scanned Order #{{ order.id }}</span>
+                        <h3 class="text-xl font-black text-gray-900 dark:text-white leading-tight mb-0 truncate">{% if order.user %}{{ order.user.get_full_name|default:order.user.username }}{% elif order.guest_profile %}{{ order.guest_profile.full_name }}{% endif %}</h3>
+                    </div>
+                    <div class="text-right shrink-0">
+                        {% if order.pickup_deadline %}
+                        <div class="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1"><i class="bi bi-clock"></i> Time Left</div>
+                        <div class="text-2xl font-black {% if order.extra_time_status == 'Rejected' %}text-red-600{% else %}text-gray-900 dark:text-white{% endif %} font-mono countdown-timer bg-white dark:bg-gray-900 px-3 py-1 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700" data-deadline="{{ order.pickup_deadline.isoformat }}">--:--</div>
+                        {% else %}
+                        <div class="w-12 h-12 bg-white dark:bg-gray-900 rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 dark:border-gray-800 shrink-0">
+                            <i class="bi bi-qr-code text-brand text-xl"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="flex-1 space-y-6 relative z-10">
+                    <!-- Ready Items -->
+                    <div>
+                        <span class="text-[10px] font-bold text-green-600 dark:text-green-500 uppercase tracking-wider mb-3 block flex items-center gap-1"><i class="bi bi-check-circle-fill"></i> Ready Now</span>
+                        <ul class="space-y-3 p-0 m-0 list-none">
+                            {% for item in order.items.all %}
+                                {% if item.status == 'Ready' %}
+                                <li class="flex justify-between items-center bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-2xl border border-green-100 dark:border-green-900/50 shadow-sm hover:shadow transition-shadow">
+                                    <span class="font-bold text-gray-900 dark:text-white text-base sm:text-lg">{{ item.quantity }}x <span class="font-medium ml-1 sm:ml-2">{{ item.menu_item.name }}</span></span>
+                                    <form onsubmit="submitAction(event, this)" method="POST" action="{% url 'update_item_status' %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_item_id" value="{{ item.id }}">
+                                        <input type="hidden" name="status" value="Served">
+                                        <button type="submit" class="bg-green-500 hover:bg-green-600 text-white rounded-xl px-4 py-2 text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 flex items-center gap-2">
+                                            Hand Over
+                                        </button>
+                                    </form>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    
+                    <!-- Pending Items Summary -->
+                    <div>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block flex items-center gap-1"><i class="bi bi-hourglass-split"></i> Still Cooking (QR Stays Valid)</span>
+                        <ul class="space-y-2 p-0 m-0 list-none">
+                            {% for item in order.items.all %}
+                                {% if item.status == 'Pending' %}
+                                <li class="flex justify-between items-center bg-gray-50 dark:bg-gray-900/30 p-2 sm:p-3 px-3 sm:px-4 rounded-[1rem] border border-dashed border-gray-200 dark:border-gray-700">
+                                    <span class="font-semibold text-gray-500 dark:text-gray-400 text-sm opacity-80">{{ item.quantity }}x <span class="font-medium ml-1">{{ item.menu_item.name }}</span></span>
+                                    <span class="text-[10px] sm:text-xs font-bold text-orange-400 bg-orange-50 dark:bg-orange-900/10 px-2 py-1 rounded-md uppercase tracking-widest block text-center min-w-[80px]">Wait</span>
+                                </li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full py-20 text-center text-gray-500 dark:text-gray-400 bg-gray-100/50 dark:bg-gray-800/50 rounded-[2.5rem] border border-dashed border-brand/20 dark:border-gray-700">
+                <i class="bi bi-cup-hot-fill text-6xl text-brand/20 dark:text-brand/10 mb-5 block"></i>
+                <h3 class="text-2xl font-black text-gray-900 dark:text-white">Serving desk is clear!</h3>
+                <p class="max-w-xs mx-auto text-sm opacity-80">Waiting for the kitchen to finish preparing meals. Items will appear here instantly.</p>
+            </div>
+            {% endfor %}
+        </div>
+        
+    {% elif role == 'Cashier' %}
+        <!-- CASHIER DASHBOARD -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 class="text-2xl font-black text-gray-900 dark:text-white mt-2 m-0">Live Counter Operations</h2>
+            <a href="{% url 'menu' %}" class="bg-brand text-white px-6 py-2.5 rounded-2xl font-bold shadow-md hover:shadow-lg transition-transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2"><i class="bi bi-cart-plus text-xl"></i> Punch New Order</a>
+        </div>
+        
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden mb-8">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="bg-gray-50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700">
+                            <th class="py-4 px-6 text-[11px] font-black text-gray-500 tracking-[0.2em] uppercase whitespace-nowrap">Order Info</th>
+                            <th class="py-4 px-6 text-[11px] font-black text-gray-500 tracking-[0.2em] uppercase">Customer</th>
+                            <th class="py-4 px-6 text-[11px] font-black text-gray-500 tracking-[0.2em] uppercase text-right">Amount</th>
+                            <th class="py-4 px-6 text-[11px] font-black text-gray-500 tracking-[0.2em] uppercase text-center">Payment</th>
+                            <th class="py-4 px-6 text-[11px] font-black text-gray-500 tracking-[0.2em] uppercase text-center">Status</th>
+                            <th class="py-4 px-6 text-[11px] font-black text-gray-500 tracking-[0.2em] uppercase text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cashier-table-body" class="divide-y divide-gray-100 dark:divide-gray-700">
+                        {% for order in counter_orders %}
+                        <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors {% if order.is_disabled %}bg-red-50/50 dark:bg-red-900/10{% endif %}">
+                            <td class="py-4 px-6">
+                                <span class="block font-black text-gray-900 dark:text-white text-lg">#{{ order.id }}</span>
+                                <span class="text-xs font-bold text-gray-400 block mt-1"><i class="bi bi-clock"></i> {{ order.created_at|date:"h:i A" }}</span>
+                            </td>
+                            <td class="py-4 px-6 font-bold text-gray-700 dark:text-gray-300">
+                                {% if order.user %}{{ order.user.get_full_name|default:order.user.username }}
+                                {% elif order.guest_profile %}{{ order.guest_profile.full_name }} <span class="text-[10px] bg-brand/10 text-brand px-1.5 py-0.5 rounded ml-2 font-black uppercase tracking-widest align-middle block sm:inline-block mt-1 sm:mt-0">Guest</span>
+                                {% else %}Counter Walkup{% endif %}
+                            </td>
+                            <td class="py-4 px-6 text-right font-black text-brand text-lg">₹{{ order.total_amount }}</td>
+                            <td class="py-4 px-6 text-center">
+                                <span class="inline-block px-3 py-1 rounded-[10px] text-[10px] font-black uppercase tracking-widest border 
+                                    {% if order.payment_method == 'Online' %}bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800
+                                    {% elif order.payment_method == 'Cash' %}bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800
+                                    {% else %}bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800{% endif %}">
+                                    {{ order.payment_method }}
+                                </span>
+                            </td>
+                            <td class="py-4 px-6 text-center">
+                                {% if order.is_disabled %}
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-black text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-inner"><i class="bi bi-ban text-sm"></i> Disabled</span>
+                                {% else %}
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-black text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-full uppercase tracking-widest border border-gray-200 dark:border-gray-600"><i class="bi bi-activity"></i> {{ order.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-4 px-6 text-right">
+                                <form method="POST" action="{% url 'toggle_order_dispute' order.id %}" class="inline-block">
+                                    {% csrf_token %}
+                                    {% if order.is_disabled %}
+                                        <button type="submit" class="bg-gray-900 dark:bg-white text-white dark:text-gray-900 px-5 py-2.5 rounded-xl text-sm font-bold shadow-sm hover:shadow-md transition-all hover:scale-105 active:scale-95 flex items-center gap-2"><i class="bi bi-unlock"></i> Unlock</button>
+                                    {% else %}
+                                        <button type="submit" class="bg-white dark:bg-gray-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all border border-red-200 dark:border-red-900/50 shadow-sm flex items-center gap-2 max-w-max ml-auto"><i class="bi bi-x-circle text-lg"></i> Dispute</button>
+                                    {% endif %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="py-16 text-center text-gray-500 dark:text-gray-400">
+                                <i class="bi bi-receipt text-5xl text-gray-300 dark:text-gray-600 mb-4 block"></i>
+                                <span class="font-bold text-xl block text-gray-800 dark:text-white">No orders recorded</span>
+                                <p class="text-sm mt-2">Start punching orders from the Counter mode.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    {% elif role == 'Cafeteria Manager' or role == 'Cafeteria Owner' %}
+        <!-- MANAGEMENT DASHBOARD -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 class="text-2xl font-black text-gray-900 dark:text-white mt-2 m-0">Analytics Overview</h2>
+            <a href="{% url 'manage_menu' %}" class="bg-brand text-white px-6 py-2.5 rounded-2xl font-bold shadow-md hover:shadow-lg transition-transform hover:-translate-y-0.5 whitespace-nowrap flex items-center gap-2"><i class="bi bi-gear-fill text-xl"></i> Manage Menu</a>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
+            <div class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <h3 class="text-[10px] sm:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Total Sales</h3>
+                    <p class="text-xl sm:text-2xl md:text-3xl font-black text-brand m-0">₹{{ total_sales }}</p>
+                </div>
+                <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-3xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-brand text-2xl sm:text-3xl">
+                    <i class="bi bi-graph-up-arrow"></i>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <h3 class="text-[10px] sm:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Today's Sales</h3>
+                    <p class="text-xl sm:text-2xl md:text-3xl font-black text-green-600 dark:text-green-400 m-0">₹{{ today_sales }}</p>
+                </div>
+                <div class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 text-xl sm:text-2xl">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <h3 class="text-[10px] sm:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Active Staff</h3>
+                    <p class="text-xl sm:text-2xl md:text-3xl font-black text-blue-600 dark:text-blue-400 m-0">{{ active_staff }}</p>
+                </div>
+                <div class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-xl sm:text-2xl">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <h3 class="text-[10px] sm:text-xs font-black text-gray-600 dark:text-gray-400 uppercase tracking-[0.15em] mb-1.5">Pending</h3>
+                    <p class="text-xl sm:text-2xl md:text-3xl font-black text-orange-500 m-0">{{ pending_orders }}</p>
+                </div>
+                <div class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-xl sm:rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 text-xl sm:text-2xl">
+                    <i class="bi bi-hourglass-split"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-5 sm:mt-6 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+             <h3 class="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4"><i class="bi bi-gear-fill mr-1.5 text-brand"></i> Global Wait Settings</h3>
+             <form method="POST" action="{% url 'update_system_settings' %}" class="flex flex-col sm:flex-row items-end gap-3 max-w-sm">
+                 {% csrf_token %}
+                 <div class="flex-1 w-full">
+                     <label class="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest block mb-1.5">Default Wait Time (Mins)</label>
+                     <input type="number" name="wait_time" value="{{ default_wait_time }}" min="1" max="60" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg sm:rounded-xl px-3 py-2.5 font-bold text-sm text-gray-900 dark:text-white focus:outline-none focus:border-brand">
+                 </div>
+                 <button type="submit" class="bg-brand text-white px-4 py-2.5 rounded-lg sm:rounded-xl font-bold text-xs sm:text-sm shadow-md hover:bg-orange-600 transition-colors shrink-0 w-full sm:w-auto"><i class="bi bi-check-lg"></i> Set</button>
+             </form>
+        </div>
+        
+        <div class="mt-5 sm:mt-6 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 md:gap-5">
+            <!-- Popular Items -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h3 class="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4"><i class="bi bi-fire mr-1.5 text-brand"></i>Popular Items</h3>
+                <ul class="list-none p-0 m-0 space-y-2 sm:space-y-3">
+                    {% for item in popular_items %}
+                    <li class="flex items-center justify-between p-2.5 sm:p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl">
+                        <span class="font-bold text-sm text-gray-900 dark:text-white">{{ item.menu_item__name }}</span>
+                        <span class="text-xs font-black text-brand bg-orange-50 dark:bg-orange-900/20 px-2.5 py-0.5 rounded-full">{{ item.total_sold }} sold</span>
+                    </li>
+                    {% empty %}
+                    <li class="text-gray-400 text-xs py-4 text-center">No sales data yet</li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Recent Activities -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-5 md:p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+                <h3 class="text-sm sm:text-base md:text-lg font-bold text-gray-900 dark:text-white mb-3 sm:mb-4"><i class="bi bi-clock-history mr-1.5 text-brand"></i>Recent Orders</h3>
+                <ul class="list-none p-0 m-0 space-y-2 sm:space-y-3">
+                    {% for order in recent_orders %}
+                    <li class="flex items-center justify-between p-2.5 sm:p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg sm:rounded-xl">
+                        <div>
+                            <span class="font-bold text-sm text-gray-900 dark:text-white">Order #{{ order.id }}</span>
+                            <span class="text-[10px] text-gray-400 block">{{ order.created_at|date:"M d, h:i A" }}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-black text-sm text-brand">₹{{ order.total_amount }}</span>
+                            <span class="text-[9px] font-black uppercase tracking-widest block {% if order.status == 'Completed' %}text-green-500{% elif order.status == 'Pending' %}text-orange-500{% else %}text-blue-500{% endif %}">{{ order.status }}</span>
+                        </div>
+                    </li>
+                    {% empty %}
+                    <li class="text-gray-400 text-xs py-4 text-center">No orders yet</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+    {% endif %}
+    
+    <!-- QR Scanner Floating Button (Serving Desk & Cashier) -->
+    {% if role == 'Serving Desk' or role == 'Cashier' %}
+    <button onclick="toggleQRModal()" class="fixed bottom-6 right-6 w-16 h-16 bg-brand hover:bg-orange-600 hover:scale-110 active:scale-95 transition-all text-white rounded-full shadow-2xl flex items-center justify-center z-[100] border-4 border-white dark:border-gray-800">
+        <i class="bi bi-qr-code-scan text-2xl"></i>
+    </button>
+    {% endif %}
+    
+
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // WebSocket setup
+    let socket = null;
+    let role = "{{ role }}";
+
+    function connectDashboardWS() {
+        let wsPath = '';
+        if (role === 'Kitchen Manager') {
+            wsPath = '/ws/kitchen/';
+        } else if (role === 'Serving Desk') {
+            wsPath = '/ws/serving/';
+        } else if (role === 'Cashier') {
+            wsPath = '/ws/serving/'; // Cashier can listen to serving updates for new orders
+        } else {
+            return;
+        }
+
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = wsScheme + "://" + window.location.host + wsPath;
+        
+        console.log("Connecting to Dashboard WebSocket:", wsUrl);
+        socket = new WebSocket(wsUrl);
+
+        socket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log("Dashboard WebSocket signal received:", data);
+            
+            // Any "refresh" signal at all means we should fetch fresh data
+            if (data.type === 'refresh' || data.refresh === true || data.type === 'menu_update') {
+                updateDashboardSections();
+            }
+        };
+
+        socket.onclose = function(e) {
+            console.warn('Dashboard socket closed unexpectedly. Retrying in 2 seconds...');
+            setTimeout(function() {
+                connectDashboardWS();
+            }, 2000);
+        };
+
+        socket.onerror = function(err) {
+            console.error('Dashboard WebSocket error:', err);
+            socket.close();
+        };
+    }
+
+    async function updateDashboardSections() {
+        console.log("Synchronizing dashboard sections...");
+        const response = await fetch(window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'cache_bust=' + new Date().getTime());
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        
+        const sections = [
+            'production-board-list', 
+            'kitchen-stock-section',
+            'ready-pool-grid', 
+            'wait-requests-grid', 
+            'serving-orders-grid', 
+            'cashier-table-body'
+        ];
+        
+        sections.forEach(id => {
+            const oldEl = document.getElementById(id);
+            const newEl = doc.getElementById(id);
+            if (oldEl && newEl) {
+                // Smooth transition: fade out old content, swap, then fade in?
+                // For now, clean swap is better than flicker
+                oldEl.innerHTML = newEl.innerHTML;
+            }
+        });
+
+        if (typeof updateTimers === 'function') updateTimers();
+    }
+
+    function submitAction(event, form) {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const action = form.getAttribute('action');
+        
+        // Show loading state on button
+        const btn = form.querySelector('button[type="submit"]');
+        const origContent = btn.innerHTML;
+        btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i>';
+        btn.disabled = true;
+
+        fetch(action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        }).then(res => {
+            // We don't bother with redirect because WS will trigger updateDashboardSections()
+            // but if WS is slow, we can trigger it manually here
+            updateDashboardSections();
+        }).catch(err => {
+            console.error('Action failed:', err);
+            btn.innerHTML = 'Error!';
+            setTimeout(() => {
+                btn.innerHTML = origContent;
+                btn.disabled = false;
+            }, 2000);
+        });
+    }
+
+    // Kitchen Manager: ± adjust values and auto-save
+    function adjustValue(itemId, field, delta) {
+        const inputId = field === 'ready' ? 'ready-qty-' + itemId : 'qty-' + itemId;
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        let val = parseInt(input.value) || 0;
+        val = Math.max(0, val + delta);
+        input.value = val;
+        autoSaveStock(itemId);
+    }
+
+    let saveTimers = {};
+    function autoSaveStock(itemId) {
+        // Update availability label
+        const availCheckbox = document.getElementById('avail-' + itemId);
+        const availLabel = document.getElementById('avail-label-' + itemId);
+        if (availCheckbox && availLabel) {
+            availLabel.textContent = availCheckbox.checked ? 'Active' : 'Off';
+            availLabel.className = 'text-[10px] font-black uppercase tracking-widest ' + (availCheckbox.checked ? 'text-green-600' : 'text-gray-400');
+        }
+
+        // Debounce save
+        if (saveTimers[itemId]) clearTimeout(saveTimers[itemId]);
+        saveTimers[itemId] = setTimeout(() => {
+            const isAvail = document.getElementById('avail-' + itemId).checked;
+            const stockQty = document.getElementById('qty-' + itemId).value;
+            const readyStockQty = document.getElementById('ready-qty-' + itemId) ? document.getElementById('ready-qty-' + itemId).value : 0;
+            const row = document.getElementById('stock-row-' + itemId);
+
+            fetch('{% url "update_kitchen_stock" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ item_id: itemId, is_available: isAvail, stock: stockQty, ready_pool_stock: readyStockQty })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'ok' && row) {
+                    row.style.transition = 'background-color 0.3s';
+                    row.style.backgroundColor = 'rgba(34,197,94,0.08)';
+                    setTimeout(() => { row.style.backgroundColor = ''; }, 1200);
+                }
+            });
+        }, 400);
+    }
+
+    // Serving Desk: Countdown timer update
+    function updateTimers() {
+        document.querySelectorAll('.countdown-timer').forEach(el => {
+            const deadlineStr = el.getAttribute('data-deadline');
+            if(!deadlineStr) return;
+            const target = new Date(deadlineStr).getTime();
+            const now = new Date().getTime();
+            const distance = target - now;
+            
+            if (distance < 0) {
+                el.innerHTML = "00:00";
+                el.classList.add('text-red-500', 'animate-pulse');
+                el.classList.remove('text-gray-900', 'dark:text-white', 'text-red-600');
+                return;
+            }
+            
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            
+            el.innerHTML = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+            
+            if(minutes < 1) {
+                el.classList.add('text-orange-500');
+                el.classList.remove('text-gray-900', 'dark:text-white');
+            }
+        });
+    }
+    
+    // Initialize
+    connectDashboardWS();
+    if (document.querySelectorAll('.countdown-timer').length > 0) {
+        setInterval(updateTimers, 1000);
+        updateTimers();
+    }
+</script>
+
+</script>
+{% endblock %}

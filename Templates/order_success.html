@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    @media print {
+        body { background: white !important; padding: 0 !important; margin: 0 !important; }
+        .no-print, header, nav, footer, .btn { display: none !important; }
+        .thermal-receipt {
+            width: 80mm !important;
+            padding: 5mm !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            background: white !important;
+            color: black !important;
+        }
+        .thermal-receipt * {
+            color: black !important;
+            box-shadow: none !important;
+            border-color: black !important;
+        }
+    }
+    .progress-bar-container {
+        height: 12px;
+        background: #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        transition: width 2s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }
+    .progress-bar-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(255,255,255,0) 0%,
+            rgba(255,255,255,0.4) 50%,
+            rgba(255,255,255,0) 100%
+        );
+        animation: progress-shimmer 2s infinite;
+    }
+    @keyframes progress-shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+    .progress-creep {
+        animation: progress-creep 60s linear infinite;
+    }
+    @keyframes progress-creep {
+        0% { transform: scaleX(1); }
+        100% { transform: scaleX(1.1); transform-origin: left; }
+    }
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+</style>
+
+<div class="max-w-2xl mx-auto py-12 px-4 no-print-margin" data-order-id="{{ order.id }}">
+    <div class="thermal-receipt bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden text-center p-8 sm:p-12 relative">
+        <div class="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-green-400 to-green-600"></div>
+        
+        <i class="bi bi-check-circle-fill text-6xl sm:text-7xl text-green-500 mb-4 inline-block drop-shadow-sm"></i>
+        <h1 class="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white mb-2 tracking-tight">Order Received!</h1>
+        <p class="text-gray-500 dark:text-gray-400 text-sm sm:text-lg font-medium mb-8">Your order <span class="text-gray-900 dark:text-white font-bold">#{{ order.id }}</span> is pending approval by the Kitchen.</p>
+
+        <!-- LIVE TRACKER -->
+        {% if request.user.role != 'Cashier' %}
+        <div class="mb-8" id="live-tracker">
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-[2rem] p-6 shadow-inner relative overflow-hidden border border-gray-100 dark:border-gray-700">
+                <h3 class="text-xs font-black text-gray-400 uppercase tracking-widest mb-4">🔴 Live Status Tracking</h3>
+                
+                <div class="progress-bar-container mb-4 w-full max-w-[80%] mx-auto">
+                    <div id="progress-bar" class="progress-bar-fill bg-brand shadow-[0_0_15px_rgba(255,107,0,0.3)] progress-creep" style="width: 10%"></div>
+                </div>
+                
+                <h2 id="tracker-status-text" class="text-2xl font-black text-gray-900 dark:text-white mb-2">⏳ Preparing Order...</h2>
+                <p id="tracker-sub" class="text-sm font-medium text-gray-500 max-w-xs mx-auto mb-0">Your food is being prepared with care.</p>
+                
+                <!-- Countdown -->
+                <div id="tracker-countdown-container" class="hidden my-6">
+                    <div class="inline-block bg-white dark:bg-gray-800 border-2 border-orange-100 dark:border-orange-900/30 px-8 py-4 rounded-[1.5rem] shadow-sm">
+                        <span class="text-[10px] font-black text-orange-500 uppercase tracking-widest block mb-1">Pickup Deadline</span>
+                        <span id="tracker-countdown" class="text-4xl font-mono font-black text-gray-900 dark:text-white tracking-tight">--:--</span>
+                    </div>
+                </div>
+                
+                <!-- Extra time request -->
+                <div id="extra-time-container" class="hidden mt-6 pt-6 border-t border-gray-200 dark:border-gray-700/50">
+                    <p class="text-xs font-black text-gray-500 uppercase tracking-widest mb-3" id="extra-time-prompt">Need more time to arrive?</p>
+                    <div class="flex gap-2 justify-center" id="extra-time-buttons">
+                        <button type="button" onclick="requestWaitTime(5)" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-brand hover:text-brand px-5 py-2.5 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 transition-colors">+5 Min</button>
+                        <button type="button" onclick="requestWaitTime(10)" class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-brand hover:text-brand px-5 py-2.5 rounded-xl text-sm font-bold text-gray-700 dark:text-gray-300 transition-colors">+10 Min</button>
+                    </div>
+                    <div id="extra-time-status-msg" class="hidden mt-3 font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-lg inline-block"></div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        
+        <div class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-6 sm:p-8 rounded-[2rem] inline-block shadow-inner mb-8 w-full sm:w-auto transition-transform hover:scale-105">
+            <h3 class="text-xs sm:text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-[0.2em] mb-4">Your Serving Key</h3>
+            <div class="bg-white p-2 rounded-2xl mx-auto shadow-sm inline-block">
+                {% if order.qr_code_id %}
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={{ order.qr_code_id }}" alt="QR Code" class="rounded-xl w-[200px] h-[200px] sm:w-[250px] sm:h-[250px]">
+                {% else %}
+                <div class="w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] bg-gray-100 flex items-center justify-center text-gray-400 font-bold rounded-xl border-2 border-dashed border-gray-300">No QR Code Generated</div>
+                {% endif %}
+            </div>
+            <p class="mt-4 text-[10px] sm:text-xs text-brand font-bold uppercase tracking-wider">Keep this active to collect food at Desk</p>
+        </div>
+
+        <div class="space-y-3 mb-8 text-left w-full sm:max-w-sm mx-auto bg-gray-50 dark:bg-gray-800/80 p-6 rounded-3xl border border-gray-100 dark:border-gray-700">
+            <h4 class="font-black text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-3 uppercase tracking-wider text-sm">Receipt Breakdown:</h4>
+            {% for item in order.items.all %}
+            <div class="flex justify-between items-center text-gray-700 dark:text-gray-300 font-medium text-sm sm:text-base">
+                <span>{{ item.quantity }}x {{ item.menu_item.name }}</span>
+                <span class="font-bold">₹{{ item.price_at_time }}</span>
+            </div>
+            {% endfor %}
+            <div class="flex justify-between items-center text-xl sm:text-2xl font-black text-gray-900 dark:text-white pt-3 border-t border-gray-200 dark:border-gray-700">
+                <span>Total:</span>
+                <span class="text-brand">₹{{ order.total_amount }}</span>
+            </div>
+        </div>
+
+        <a href="{% url 'menu' %}" class="btn bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-black w-full sm:w-auto rounded-2xl sm:rounded-full px-10 py-4 text-sm sm:text-lg font-bold shadow-lg transition-transform no-print">{% if request.user.role == 'Cashier' %}New Order{% else %}Done{% endif %}</a>
+    </div>
+</div>
+
+{% if request.user.role == 'Cashier' %}
+<script>
+    // Hardware Override: Automatically trigger printer dialog for Cashier Terminals
+    window.onload = function() {
+        setTimeout(function() {
+            window.print();
+        }, 800);
+    }
+</script>
+{% else %}
+<script>
+    let trackerDeadlineStr = null;
+    let extraTimeRequested = 0;
+    let socket = null;
+
+    function connectWebSocket() {
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = wsScheme + "://" + window.location.host + "/ws/order/{{ order.id }}/";
+        
+        console.log("Connecting to WebSocket:", wsUrl);
+        socket = new WebSocket(wsUrl);
+
+        socket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log("WebSocket message received:", data);
+            if (data.type === 'refresh') {
+                updateUI();
+            }
+        };
+
+        socket.onclose = function(e) {
+            console.warn('Order socket closed unexpectedly. Retrying in 2 seconds...');
+            setTimeout(function() {
+                connectWebSocket();
+            }, 2000);
+        };
+
+        socket.onerror = function(err) {
+            console.error('WebSocket error:', err);
+            socket.close();
+        };
+    }
+
+    function updateUI() {
+        fetch('{% url "get_order_status" order.id %}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status !== 'ok') return;
+                
+                document.getElementById('live-tracker').classList.remove('hidden');
+                
+                const statusText = document.getElementById('tracker-status-text');
+                const subText = document.getElementById('tracker-sub');
+                const bar = document.getElementById('progress-bar');
+                const countdownContainer = document.getElementById('tracker-countdown-container');
+                const extraTimeContainer = document.getElementById('extra-time-container');
+                
+                if (data.global_status === 'In Kitchen') {
+                    statusText.innerText = 'Cooking...';
+                    subText.innerText = 'The kitchen is preparing your meal.';
+                    bar.style.width = '30%';
+                    bar.classList.remove('bg-green-500', 'bg-gray-400');
+                    countdownContainer.classList.add('hidden');
+                    extraTimeContainer.classList.add('hidden');
+                } else if (data.global_status === 'Ready for Pickup') {
+                    statusText.innerText = 'Ready for Pickup!';
+                    
+                    if (data.served_count > 0) {
+                        subText.innerText = 'You collected ' + data.served_count + ' items. ' + data.ready_count + ' more are ready!';
+                    } else {
+                        subText.innerText = 'Head to the serving desk to collect your food.';
+                    }
+
+                    bar.style.width = '90%';
+                    bar.classList.remove('bg-gray-400');
+                    bar.classList.add('bg-green-500');
+                    
+                    if (data.deadline) {
+                        trackerDeadlineStr = data.deadline;
+                        countdownContainer.classList.remove('hidden');
+                    }
+                    
+                    // Show extra time controls if they haven't exhausted it
+                    extraTimeContainer.classList.remove('hidden');
+                    const msgEl = document.getElementById('extra-time-status-msg');
+                    const btns = document.getElementById('extra-time-buttons');
+                    
+                    if (data.extra_time_status === 'Pending') {
+                        btns.classList.add('hidden');
+                        msgEl.classList.remove('hidden');
+                        msgEl.innerText = "Wait time request pending...";
+                        msgEl.className = "mt-3 font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-lg inline-block bg-orange-100 text-orange-600";
+                    } else if (data.extra_time_status === 'Accepted') {
+                        document.getElementById('extra-time-prompt').classList.add('hidden');
+                        btns.classList.add('hidden');
+                        msgEl.classList.remove('hidden');
+                        msgEl.innerText = "+" + data.extra_time_requested + " Min Granted!";
+                        msgEl.className = "mt-3 font-bold text-xs uppercase tracking-widest px-4 py-2 rounded-lg inline-block bg-green-100 text-green-600";
+                    } else if (data.extra_time_status === 'Rejected') {
+                        btns.classList.remove('hidden');
+                        msgEl.classList.remove('hidden');
+                        msgEl.innerText = "Request Rejected by Serving Desk";
+                        msgEl.className = "mt-3 font-bold text-[10px] uppercase tracking-widest text-red-500 block";
+                    } else {
+                        btns.classList.remove('hidden');
+                        msgEl.classList.add('hidden');
+                    }
+                    
+                } else if (data.global_status === 'Completed') {
+                    statusText.innerText = 'Order Completed';
+                    subText.innerText = 'Enjoy your meal!';
+                    bar.style.width = '100%';
+                    bar.classList.remove('bg-green-500');
+                    bar.classList.add('bg-gray-400');
+                    countdownContainer.classList.add('hidden');
+                    extraTimeContainer.classList.add('hidden');
+                }
+            });
+    }
+
+    function updateTrackerClock() {
+        if (!trackerDeadlineStr) return;
+        const target = new Date(trackerDeadlineStr).getTime();
+        const now = new Date().getTime();
+        const distance = target - now;
+        
+        const el = document.getElementById('tracker-countdown');
+        
+        if (distance < 0) {
+            el.innerHTML = "00:00";
+            el.classList.add('text-red-500', 'animate-pulse');
+            el.classList.remove('text-gray-900', 'dark:text-white');
+            return;
+        }
+        
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        
+        el.innerHTML = (minutes < 10 ? "0" : "") + minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+        if(minutes < 1) el.classList.add('text-red-500');
+    }
+
+    function requestWaitTime(mins) {
+        fetch('{% url "request_extra_time" order.id %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ minutes: mins })
+        }).then(res => res.json()).then(data => {
+            if(data.status === 'ok') updateUI(); // immediate refresh
+        });
+    }
+
+    // Initialize
+    connectWebSocket();
+    setInterval(updateTrackerClock, 1000);
+    updateUI();
+</script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,536 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="mb-4 pt-1 sm:mb-6 sm:pt-2">
+    <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+        Hi {% if user.is_authenticated %}{{ user.first_name|default:user.username }}{% elif guest_name %}{{ guest_name }}{% else %}There 👋{% endif %}
+    </h1>
+    <p class="text-gray-500 mt-0.5 text-xs sm:text-sm md:text-base font-medium dark:text-gray-400">
+        Taste the excellence. Order your favorites in seconds.
+    </p>
+</div>
+
+<div class="fluid-grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    {% for item in items %}
+    <div class="dynamic-card cursor-pointer {% if not item.is_available or item.current_stock == 0 %}item-frozen{% endif %}" 
+         data-id="{{ item.id }}" 
+         data-name="{{ item.name|escapejs }}" 
+         data-desc="{{ item.description|escapejs }}" 
+         data-price="{{ item.price }}" 
+         data-img="{% if item.image %}{{ item.image.url }}{% endif %}" 
+         data-veg="{{ item.is_veg|yesno:'true,false' }}"
+         onclick="openItemDetailFromData(this)">
+        <div class="card-img-wrapper">
+            {% if item.image %}
+                <img src="{{ item.image.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
+            {% else %}
+                <div class="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <i class="bi bi-image text-4xl text-gray-400"></i>
+                </div>
+            {% endif %}
+            <div id="unavailable-overlay-{{ item.id }}" class="absolute inset-0 bg-black/10 backdrop-blur-[2px] flex items-center justify-center {% if item.is_available and item.current_stock > 0 %}hidden{% endif %}">
+                <span class="bg-white/90 dark:bg-gray-800/90 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.1em] shadow-xl text-center leading-tight">Currently<br>Unavailable</span>
+            </div>
+        </div>
+        
+        <div class="p-2.5 sm:p-3.5 md:p-4 flex-1 flex flex-col">
+            <div class="flex justify-between items-start mb-1 sm:mb-2">
+                <div class="min-w-0 flex-1 pr-1.5">
+                    <h3 class="text-[13px] sm:text-sm md:text-base font-bold text-gray-900 dark:text-white leading-tight mb-0.5 truncate">{{ item.name }}</h3>
+                    {% if item.is_available and item.current_stock > 0 %}
+                        <span id="stock-label-{{ item.id }}" class="inline-flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-green-50 text-green-600 px-1.5 py-0.5 rounded-full border border-green-100 dark:bg-green-500/10 dark:border-green-500/20"><i class="bi bi-check2-circle"></i> Ready · <span id="stock-qty-{{ item.id }}">{{ item.current_stock }}</span> left</span>
+                    {% else %}
+                        <span id="stock-label-{{ item.id }}" class="inline-flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-400"><i class="bi bi-x-circle"></i> Unavailable</span>
+                    {% endif %}
+                </div>
+                <div class="flex-shrink-0 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center p-[2px]">
+                    <div class="w-full h-full rounded-full {% if item.is_veg %}bg-green-500{% else %}bg-red-500{% endif %}"></div>
+                </div>
+            </div>
+            
+            <p class="text-[10px] sm:text-xs text-gray-500 mb-2 sm:mb-3 flex-1 dark:text-gray-400 line-clamp-2 leading-relaxed">{{ item.description }}</p>
+            
+            <div class="flex justify-between items-center mt-auto">
+                <span class="text-[13px] sm:text-sm md:text-base font-black text-brand">₹{{ item.price }}</span>
+                
+                <div class="cart-controls" data-item-id="{{ item.id }}" onclick="event.stopPropagation()">
+                    <template id="add-btn-{{ item.id }}">
+                        <button onclick="updateCart('{{ item.id }}', 'add')" class="btn-smooth btn-brand-fluid px-3 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-[11px] uppercase tracking-wider">ADD</button>
+                    </template>
+                    <template id="qty-btn-{{ item.id }}">
+                        <div class="flex items-center gap-1.5 sm:gap-2 bg-brand text-white rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 shadow-md border border-white/20">
+                            <button onclick="updateCart('{{ item.id }}', 'remove')" class="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-black transition-transform text-xs">-</button>
+                            <span class="font-black text-[10px] sm:text-xs quantity-val">0</span>
+                            <button onclick="updateCart('{{ item.id }}', 'add')" class="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-black transition-transform text-xs">+</button>
+                        </div>
+                    </template>
+                    
+                    <div class="control-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-span-full text-center py-20 text-gray-400 dark:text-gray-600">
+        <i class="bi bi-balloon-heart text-5xl block mb-4 opacity-20"></i>
+        <p class="text-lg font-medium">We're whipping up something special.</p>
+    </div>
+    {% endfor %}
+</div>
+
+
+<!-- Item Detail — Compact Modal / Bottom Sheet on Mobile -->
+<div id="item-modal" class="fixed inset-0 z-[1200] hidden flex items-end sm:items-center justify-center sm:p-4 bg-black/50 backdrop-blur-sm transition-opacity duration-250 opacity-0">
+    <div class="glass-panel rounded-t-2xl sm:rounded-2xl md:rounded-[2rem] shadow-2xl w-full sm:max-w-md md:max-w-lg overflow-hidden transform transition-all duration-300 translate-y-4 sm:scale-95 flex flex-col max-h-[82vh] sm:max-h-[85vh] relative">
+        
+        <!-- Bottom Sheet Handle (Mobile Only) -->
+        <div class="sm:hidden w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto my-3 opacity-40"></div>
+        
+        <button onclick="closeItemModal()" class="absolute top-4 right-4 z-[100] bg-white/40 dark:bg-gray-800/40 backdrop-blur-md text-gray-800 dark:text-white w-9 h-9 rounded-full flex items-center justify-center shadow-sm border border-black/5 dark:border-white/10 transition-all hover:bg-white hover:scale-110 active:scale-90">
+            <i class="bi bi-x-lg text-sm leading-none"></i>
+        </button>
+
+        <!-- Header Image -->
+        <div id="modal-image-container" class="relative w-full flex-shrink-0" style="height: clamp(140px, 28vh, 280px)">
+            <img id="modal-item-image" src="" alt="" class="w-full h-full object-cover hidden">
+            <div id="modal-item-placeholder" class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                <i class="bi bi-image text-5xl sm:text-6xl text-gray-300 dark:text-gray-600"></i>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="p-4 sm:p-5 md:p-6 flex-1 overflow-y-auto">
+            <div class="flex items-center gap-2 mb-1">
+                <h2 id="modal-item-name" class="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white leading-tight m-0 flex-1 min-w-0"></h2>
+                <div class="inline-flex h-4 w-4 sm:h-5 sm:w-5 rounded-md bg-gray-100 dark:bg-gray-700 items-center justify-center p-[3px] shadow-sm flex-shrink-0">
+                    <span id="modal-veg-dot" class="w-full h-full rounded-full border border-black/10"></span>
+                </div>
+            </div>
+            <p id="modal-item-desc" class="text-gray-500 dark:text-gray-400 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-5"></p>
+            
+            <div class="flex items-center justify-between pt-3 sm:pt-4 border-t border-gray-100 dark:border-gray-700">
+                <!-- Qty Controls -->
+                <div class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1.5 border border-black/5 dark:border-white/5">
+                    <button onclick="updateModalQty(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white active:scale-90 transition-all border border-black/5 dark:border-white/5"><i class="bi bi-dash-lg font-black text-sm"></i></button>
+                    <span id="modal-qty" class="text-lg sm:text-xl font-black w-10 text-center dark:text-white">1</span>
+                    <button onclick="updateModalQty(1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white active:scale-90 transition-all border border-black/5 dark:border-white/5"><i class="bi bi-plus-lg font-black text-sm"></i></button>
+                </div>
+                
+                <!-- Action -->
+                <button id="modal-add-btn" onclick="addItemFromModal()" class="flex-1 ml-3 sm:ml-4 py-3 bg-brand text-white font-bold text-sm sm:text-base rounded-xl active:scale-95 transition-all shadow-md shadow-brand/20">
+                    Add ₹<span id="modal-total-price">0</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Cart Bar — Compact on mobile -->
+<div id="floating-cart" class="fixed bottom-2 sm:bottom-4 md:bottom-6 left-1/2 transform -translate-x-1/2 w-[92%] sm:w-[340px] md:w-[380px] bg-white dark:bg-gray-800 rounded-2xl sm:rounded-full shadow-xl border border-gray-100 dark:border-gray-700 py-1.5 sm:py-2.5 px-3 sm:px-5 flex justify-between items-center transition-all duration-300 z-[1000] translate-y-24 opacity-0">
+    <div class="flex items-center gap-2">
+        <div class="bg-brand/10 p-1.5 sm:p-2 rounded-xl sm:rounded-full flex items-center justify-center">
+            <i class="bi bi-cart3 text-brand text-base sm:text-lg leading-none"></i>
+        </div>
+        <div class="flex flex-col justify-center">
+            <p class="text-[9px] sm:text-[10px] text-gray-400 font-bold tracking-tight m-0 leading-tight uppercase">Cart</p>
+            <p class="font-black text-gray-900 dark:text-white m-0 text-[11px] sm:text-xs leading-tight"><span id="cart-item-count">0</span> items</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-1.5 sm:gap-3">
+        <p class="font-black text-brand text-xs sm:text-base m-0 leading-none whitespace-nowrap" id="cart-total-price">₹0</p>
+        <a href="{% url 'cart' %}" class="btn-smooth btn-brand-fluid px-2.5 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs no-underline flex items-center gap-0.5 whitespace-nowrap shadow-sm">
+            Cart <i class="bi bi-chevron-right text-[8px]"></i>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script id="items-json" type="application/json">{{ items_json|safe }}</script>
+<script id="cart-map-json" type="application/json">{{ cart_items_map|safe|default:"{}" }}</script>
+<script id="cart-count-json" type="application/json">{{ cart_count|default:0 }}</script>
+
+<script>
+    (function() {
+        try {
+            console.log("Initializing JOE Menu Interactive Scripts...");
+
+            // 1. Data Initialization
+            const itemsJsonEl = document.getElementById('items-json');
+            const cartMapJsonEl = document.getElementById('cart-map-json');
+            if (!itemsJsonEl || !cartMapJsonEl) {
+                console.error("Missing JSON data blocks");
+                return;
+            }
+
+            const allItems = JSON.parse(itemsJsonEl.textContent);
+            const cartItemsMap = JSON.parse(cartMapJsonEl.textContent);
+            const cartCountEl = document.getElementById('cart-count-json');
+            const itemLookup = {};
+            allItems.forEach(i => { itemLookup[i.id] = i; });
+
+            let totalItems = parseInt(cartCountEl ? cartCountEl.textContent : "0") || 0;
+            const pageCsrf = typeof csrftoken !== 'undefined' ? csrftoken : '';
+
+            console.log(`Loaded ${allItems.length} items, Total Cart: ${totalItems}`);
+
+            // 2. UI Components
+            function renderControls() {
+                let anyItemsInCart = false;
+                let cartCalculatedTotal = 0;
+
+                document.querySelectorAll('.cart-controls').forEach(el => {
+                    const id = String(el.dataset.itemId);
+                    const container = el.querySelector('.control-container');
+                    const qty = parseInt(cartItemsMap[id]) || 0;
+                    
+                    if (qty > 0) anyItemsInCart = true;
+                    if (qty > 0 && itemLookup[id]) {
+                        cartCalculatedTotal += (itemLookup[id].price * qty);
+                    }
+
+                    if (container) {
+                        container.innerHTML = '';
+                        if (qty > 0) {
+                            const tmpl = document.getElementById(`qty-btn-${id}`);
+                            if (tmpl) {
+                                const clone = tmpl.content.cloneNode(true);
+                                clone.querySelector('.quantity-val').textContent = qty;
+                                container.appendChild(clone);
+                            }
+                        } else {
+                            const tmpl = document.getElementById(`add-btn-${id}`);
+                            if (tmpl) {
+                                container.appendChild(tmpl.content.cloneNode(true));
+                            }
+                        }
+                    }
+                });
+
+                // Update total client-side to ensure UI consistency if server response is generic
+                const priceEl = document.getElementById('cart-total-price');
+                if (priceEl && cartCalculatedTotal > 0) {
+                    priceEl.textContent = '₹' + cartCalculatedTotal.toFixed(2);
+                }
+                
+                updateFloatingCart();
+            }
+
+            function updateFloatingCart() {
+                const indicator = document.getElementById('floating-cart');
+                const countEl = document.getElementById('cart-item-count');
+                if (!indicator || !countEl) return;
+                
+                if (totalItems > 0) {
+                    countEl.textContent = totalItems;
+                    indicator.classList.remove('translate-y-24', 'opacity-0');
+                    indicator.classList.add('translate-y-0', 'opacity-100');
+                } else {
+                    indicator.classList.add('translate-y-24', 'opacity-0');
+                    indicator.classList.remove('translate-y-0', 'opacity-100');
+                }
+            }
+
+            // 3. AJAX Actions
+            function updateCart(itemId, action, quantity = null) {
+                console.log(`Updating cart - ID: ${itemId}, Action: ${action}, Qty: ${quantity}`);
+                const token = pageCsrf || (typeof getCookie === 'function' ? getCookie('csrftoken') : '');
+                
+                // Optimistic UI update
+                const idStr = String(itemId);
+                let currentQty = parseInt(cartItemsMap[idStr]) || 0;
+                let newQty = currentQty;
+                
+                if (action === 'add') {
+                    const stock = itemLookup[idStr] ? itemLookup[idStr].stock : 100;
+                    if (stock <= 0) {
+                        return; // Prevent going over stock limit
+                    }
+                    newQty = currentQty + 1;
+                }
+                else if (action === 'remove') newQty = Math.max(0, currentQty - 1);
+                else if (action === 'set' && quantity !== null) newQty = quantity;
+                
+                if (action !== 'remove_all') {
+                    cartItemsMap[idStr] = newQty;
+                    // Recalculate total items eagerly
+                    totalItems = Object.values(cartItemsMap).reduce((sum, curr) => sum + parseInt(curr), 0);
+                    renderControls();
+                }
+                
+                return fetch('{% url "update_cart" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ item_id: itemId, action: action, quantity: quantity })
+                })
+                .then(res => {
+                    if (!res.ok) throw new Error("Network response was not ok");
+                    return res.json();
+                })
+                .then(data => {
+                    if (data.status === 'ok') {
+                        cartItemsMap[idStr] = data.quantity;
+                        totalItems = data.cart_count;
+                        const priceEl = document.getElementById('cart-total-price');
+                        if (priceEl) priceEl.textContent = '₹' + data.cart_total;
+                        
+                        // Cart Pulse Animation
+                        const cartPill = document.getElementById('floating-cart');
+                        if (cartPill) {
+                            cartPill.style.transform = 'translateX(-50%) scale(1.05)';
+                            setTimeout(() => {
+                                cartPill.style.transform = 'translateX(-50%) scale(1)';
+                            }, 150);
+                        }
+                        
+                        renderControls();
+                        return data;
+                    } else {
+                        throw new Error(data.message || 'Cart update failed');
+                    }
+                })
+                .catch(err => {
+                    console.error('Cart update failed:', err);
+                    // Revert optimistic update
+                    cartItemsMap[idStr] = currentQty;
+                    totalItems = Object.values(cartItemsMap).reduce((sum, curr) => sum + parseInt(curr), 0);
+                    renderControls();
+                });
+            }
+
+            // 4. Search & Suggestions
+            const searchInput = document.getElementById('global-search');
+            const suggestionsBox = document.getElementById('search-suggestions');
+            const suggestionsList = document.getElementById('suggestions-list');
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const query = e.target.value.toLowerCase().trim();
+                    const cards = document.querySelectorAll('.dynamic-card');
+                    
+                    cards.forEach(card => {
+                        const name = (card.dataset.name || '').toLowerCase();
+                        const desc = (card.dataset.desc || '').toLowerCase();
+                        if (name.includes(query) || desc.includes(query)) {
+                            card.classList.remove('hidden');
+                            card.style.opacity = '1';
+                        } else {
+                            card.classList.add('hidden');
+                            card.style.opacity = '0';
+                        }
+                    });
+
+                    if (query.length > 0 && suggestionsBox && suggestionsList) {
+                        const matches = allItems.filter(i => 
+                            (i.name || '').toLowerCase().includes(query) || 
+                            (i.description || '').toLowerCase().includes(query)
+                        ).slice(0, 6);
+
+                        if (matches.length > 0) {
+                            suggestionsBox.classList.remove('hidden');
+                            suggestionsList.innerHTML = matches.map(item => {
+                                const escapedName = item.name.replace(/'/g, "\\'");
+                                const imgTag = item.image_url ? 
+                                    `<img src="${item.image_url}" class="w-full h-full object-cover">` : 
+                                    `<i class="bi bi-image w-full h-full flex items-center justify-center text-gray-400"></i>`;
+                                
+                                return `
+                                <div class="suggestion-item p-3 px-4 flex items-center gap-3 cursor-pointer transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0" 
+                                     onclick="openItemDetail('${item.id}', '${escapedName}', '${item.description.replace(/'/g, "\\'")}', '${item.price}', '${item.image_url}', ${item.is_veg})">
+                                    <div class="w-12 h-12 rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                                        ${imgTag}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="font-bold text-gray-900 dark:text-white truncate text-sm mb-0">${item.name}</h4>
+                                        <p class="text-xs text-brand font-bold mt-1 mb-0">₹${item.price}</p>
+                                    </div>
+                                    <i class="bi bi-chevron-right text-gray-300"></i>
+                                </div>`;
+                            }).join('');
+                        } else {
+                            suggestionsBox.classList.add('hidden');
+                        }
+                    } else if (suggestionsBox) {
+                        suggestionsBox.classList.add('hidden');
+                    }
+                });
+
+                document.addEventListener('click', (e) => {
+                    if (suggestionsBox && !searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                        suggestionsBox.classList.add('hidden');
+                    }
+                });
+            }
+
+            // 5. Modal Logic
+            let currentModalItemId = null;
+            let currentModalPrice = 0;
+            let modalQty = 1;
+
+            window.openItemDetailFromData = function(el) {
+                const id = el.dataset.id;
+                const item = itemLookup[id];
+                if (item) {
+                    openItemDetail(item.id, item.name, item.description, item.price, item.image_url, item.is_veg);
+                } else {
+                    console.warn(`Item not found for id: ${id}`);
+                }
+            };
+
+            window.openItemDetail = function(id, name, desc, price, img, isVeg) {
+                currentModalItemId = String(id);
+                currentModalPrice = parseFloat(price);
+                modalQty = parseInt(cartItemsMap[currentModalItemId]) || 1;
+                
+                const nameEl = document.getElementById('modal-item-name');
+                const descEl = document.getElementById('modal-item-desc');
+                const imgEl = document.getElementById('modal-item-image');
+                const placeholderEl = document.getElementById('modal-item-placeholder');
+                const dotEl = document.getElementById('modal-veg-dot');
+                
+                if (nameEl) nameEl.innerText = name;
+                if (descEl) descEl.innerText = desc;
+                
+                if (imgEl && placeholderEl) {
+                    if (img && img !== 'None' && img !== '') {
+                        imgEl.src = img;
+                        imgEl.classList.remove('hidden');
+                        placeholderEl.classList.add('hidden');
+                    } else {
+                        imgEl.classList.add('hidden');
+                        placeholderEl.classList.remove('hidden');
+                    }
+                }
+                
+                if (dotEl) dotEl.className = `w-full h-full rounded-full ${isVeg ? 'bg-green-500' : 'bg-red-500'}`;
+                
+                updateModalDisplay();
+                
+                const modal = document.getElementById('item-modal');
+                if (modal) {
+                    const panel = modal.querySelector('.glass-panel');
+                    modal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                    requestAnimationFrame(() => {
+                        modal.classList.remove('opacity-0');
+                        modal.classList.add('opacity-100');
+                        if (panel) {
+                            panel.style.transform = 'translateY(0) scale(1)';
+                        }
+                    });
+                }
+                if (suggestionsBox) suggestionsBox.classList.add('hidden');
+            };
+
+            window.closeItemModal = function() {
+                const modal = document.getElementById('item-modal');
+                if (!modal) return;
+                const panel = modal.querySelector('.glass-panel');
+                modal.classList.remove('opacity-100');
+                modal.classList.add('opacity-0');
+                if (panel) {
+                    panel.style.transform = window.innerWidth < 640 ? 'translateY(100%)' : 'scale(0.95)';
+                }
+                document.body.style.overflow = '';
+                setTimeout(() => modal.classList.add('hidden'), 280);
+            };
+
+            // Backdrop close (click outside the modal content area)
+            const itemModalOverlay = document.getElementById('item-modal');
+            if (itemModalOverlay) {
+                itemModalOverlay.addEventListener('click', function(e) {
+                    if (e.target === itemModalOverlay) {
+                        closeItemModal();
+                    }
+                });
+            }
+
+            window.updateModalQty = function(delta) {
+                const stock = itemLookup[currentModalItemId] ? itemLookup[currentModalItemId].stock : 100;
+                const currentCartQty = parseInt(cartItemsMap[currentModalItemId]) || 0;
+                const maxPossibleQty = currentCartQty + stock;
+                modalQty = Math.max(1, Math.min(modalQty + delta, maxPossibleQty));
+                updateModalDisplay();
+            };
+
+            function updateModalDisplay() {
+                const qtyEl = document.getElementById('modal-qty');
+                const priceEl = document.getElementById('modal-total-price');
+                if (qtyEl) qtyEl.innerText = modalQty;
+                if (priceEl) priceEl.innerText = (currentModalPrice * modalQty).toFixed(2);
+            }
+
+            window.addItemFromModal = function() {
+                updateCart(currentModalItemId, 'set', modalQty).then(() => {
+                    closeItemModal();
+                });
+            };
+
+            function connectInventoryWS() {
+                const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+                const wsUrl = wsScheme + "://" + window.location.host + "/ws/inventory/";
+                
+                console.log("Connecting to Inventory WebSocket:", wsUrl);
+                const socket = new WebSocket(wsUrl);
+
+                socket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    if (data.type === 'stock_info') {
+                        updateItemStockUI(data.item_id, data.new_stock, data.is_available);
+                    }
+                };
+
+                socket.onclose = function(e) {
+                    console.warn('Inventory socket closed. Reconnecting in 2s...');
+                    setTimeout(connectInventoryWS, 2000);
+                };
+            }
+
+            function updateItemStockUI(itemId, newStock, isAvailable) {
+                const label = document.getElementById('stock-label-' + itemId);
+                const qtySpan = document.getElementById('stock-qty-' + itemId);
+                const overlay = document.getElementById('unavailable-overlay-' + itemId);
+                const card = document.querySelector(`.dynamic-card[data-id="${itemId}"]`);
+
+                // Update internal lookup
+                if (itemLookup[itemId]) {
+                    itemLookup[itemId].stock = newStock;
+                    itemLookup[itemId].is_available = isAvailable;
+                }
+
+                if (isAvailable && newStock > 0) {
+                    if (qtySpan) {
+                        qtySpan.innerText = newStock;
+                    } else if (label) {
+                        label.className = "inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-green-50 text-green-600 px-2 py-0.5 rounded-full border border-green-100 dark:bg-green-500/10 dark:border-green-500/20";
+                        label.innerHTML = `<i class="bi bi-check2-circle"></i> Ready · <span id="stock-qty-${itemId}">${newStock}</span> left`;
+                    }
+                    if (overlay) overlay.classList.add('hidden');
+                    if (card) card.classList.remove('item-frozen');
+                } else {
+                    if (label) {
+                        label.className = "inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-400";
+                        label.innerHTML = `<i class="bi bi-x-circle"></i> Unavailable`;
+                    }
+                    if (overlay) overlay.classList.remove('hidden');
+                    if (card) card.classList.add('item-frozen');
+                }
+            }
+
+            // Expose globally
+            window.updateCart = updateCart;
+
+            // Init
+            renderControls();
+            connectInventoryWS();
+            console.log("Initialization complete!");
+            
+        } catch (e) {
+            console.error("CRITICAL ERROR IN MENU JS INIT:", e);
+        }
+    })();
+</script>
+{% endblock %}

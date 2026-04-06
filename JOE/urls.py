@@ -1,0 +1,33 @@
+from django.urls import path
+from . import views
+
+urlpatterns = [
+    path('', views.menu, name='menu'),
+    path('cart/', views.cart_view, name='cart'),
+    path('checkout/', views.checkout_view, name='checkout'),
+    path('checkout/submit/', views.checkout_submit, name='checkout_submit'),
+    path('order/<int:order_id>/', views.order_success_view, name='order_success'),
+    path('update_cart/', views.update_cart_api, name='update_cart'),
+    path('login/', views.login_view, name='login'),
+    path('logout/', views.user_logout, name='logout'),
+    path('profile/', views.profile_view, name='profile'),
+    path('my-orders/', views.my_orders_view, name='my_orders'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('dashboard/update_item/', views.update_item_status, name='update_item_status'),
+    path('dashboard/toggle_dispute/<int:order_id>/', views.toggle_order_dispute, name='toggle_order_dispute'),
+    path('dashboard/scan_qr/', views.scan_qr_api, name='scan_qr'),
+    path('dashboard/serve_item/', views.serve_item_api, name='serve_item'),
+    path('toggle_mode/', views.toggle_theme_or_veg, name='toggle_mode'),
+    path('notifications/', views.notifications_view, name='notifications'),
+    path('notifications/action/', views.notification_action_api, name='notification_action'),
+    path('guest-login/', views.guest_login_post, name='guest_login_post'),
+    path('manage-menu/', views.manage_menu_view, name='manage_menu'),
+    path('manage-menu/save/', views.add_edit_menu_item, name='add_edit_menu_item'),
+    path('manage-menu/toggle/', views.toggle_menu_item_api, name='toggle_menu_item'),
+    path('dashboard/update_kitchen_stock/', views.update_kitchen_stock, name='update_kitchen_stock'),
+    path('dashboard/update_system_settings/', views.update_system_settings, name='update_system_settings'),
+    path('order/<int:order_id>/live_status/', views.get_order_status, name='get_order_status'),
+    path('order/<int:order_id>/request_time/', views.request_extra_time, name='request_extra_time'),
+    path('dashboard/handle_time_request/<int:order_id>/', views.handle_time_request, name='handle_time_request'),
+    path('api/notifications/save-subscription/', views.save_push_subscription, name='save_push_subscription'),
+]

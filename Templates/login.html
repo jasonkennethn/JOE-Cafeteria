@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load socialaccount %}
+
+{% block content %}
+<div class="min-h-[85vh] flex items-center justify-center px-4 py-6">
+    <div
+        class="w-full max-w-[380px] sm:max-w-md bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl shadow-lg overflow-hidden relative">
+        <a href="{% url 'menu' %}"
+            class="absolute top-4 left-4 text-gray-400 hover:text-brand transition-colors dark:text-gray-500 z-10">
+            <i class="bi bi-arrow-left text-lg"></i>
+        </a>
+        <div class="p-5 sm:p-8 text-center pt-10 sm:pt-12">
+            <div
+                class="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-brand/10 dark:bg-brand/20 rounded-full flex items-center justify-center mb-4 sm:mb-5">
+                <i class="bi bi-person-fill text-3xl sm:text-4xl text-brand"></i>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-gray-900 dark:text-white mb-1">Welcome to JOE</h2>
+            <p class="text-gray-500 dark:text-gray-400 mb-5 sm:mb-6 font-medium text-xs sm:text-sm">Login to order your
+                favorite meals</p>
+
+            {% if error %}
+            <div
+                class="bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 p-2.5 rounded-xl text-xs sm:text-sm mb-4 flex items-center gap-2 font-medium">
+                <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+            </div>
+            {% endif %}
+
+            <div class="flex flex-col gap-2.5 sm:gap-3">
+                <!-- Guest — Inline expandable (NO popup) -->
+                <div
+                    class="w-full border border-gray-200 dark:border-gray-700 rounded-xl sm:rounded-2xl overflow-hidden transition-all">
+                    <button type="button" onclick="toggleGuestForm()" id="guest-toggle-btn"
+                        class="w-full py-2.5 sm:py-3 flex items-center justify-center gap-2 font-semibold text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <i class="bi bi-person text-lg"></i> Continue As Guest
+                        <i class="bi bi-chevron-down text-[10px] text-gray-400 transition-transform"
+                            id="guest-chevron"></i>
+                    </button>
+
+                    <!-- Inline Guest Form (replaces popup) -->
+                    <div id="guest-form-container"
+                        style="max-height:0; overflow:hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1);">
+                        <div class="px-4 pb-4 pt-1 border-t border-gray-100 dark:border-gray-700">
+                            <form method="POST" action="{% url 'guest_login_post' %}" class="space-y-3 text-left">
+                                {% csrf_token %}
+                                <div>
+                                    <label for="full_name"
+                                        class="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Full
+                                        Name</label>
+                                    <input type="text" id="full_name" name="full_name" required
+                                        placeholder="Enter Your Name"
+                                        class="form-control w-full px-3 py-2 sm:py-2.5 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-brand/30 focus:border-brand transition-shadow">
+                                </div>
+                                <div>
+                                    <label for="phone_number"
+                                        class="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Phone
+                                        (10 digits)</label>
+                                    <input type="text" id="phone_number" name="phone_number" required
+                                        placeholder="Enter Your Phone Number" maxlength="10" pattern="[0-9]{10}"
+                                        inputmode="numeric"
+                                        class="form-control w-full px-3 py-2 sm:py-2.5 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-brand/30 focus:border-brand transition-shadow"
+                                        oninput="this.value = this.value.replace(/[^0-9]/g, ''); validatePhoneLength()">
+                                    <p id="phone-error" class="text-[10px] text-red-500 mt-0.5 hidden">Must be exactly
+                                        10 digits</p>
+                                </div>
+                                <button type="submit"
+                                    class="w-full bg-brand hover:bg-brand-dark text-white font-bold py-2.5 px-4 rounded-xl transition-colors shadow-md shadow-brand/20 text-sm">
+                                    Start Ordering
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Google -->
+                <a href="{% provider_login_url 'google' %}"
+                    class="w-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 font-semibold transition-colors no-underline text-sm">
+                    <i class="bi bi-google text-red-500 text-base"></i> Continue with Google
+                </a>
+
+                <div class="relative py-3">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-200 dark:border-gray-700"></div>
+                    </div>
+                    <div class="relative flex justify-center text-[10px] sm:text-xs">
+                        <span
+                            class="px-2 bg-white dark:bg-gray-800 text-gray-400 uppercase tracking-wider font-bold">Staff
+                            Login</span>
+                    </div>
+                </div>
+
+                <!-- Staff Form -->
+                <form method="POST" action="{% url 'login' %}" class="text-left space-y-3">
+                    {% csrf_token %}
+                    <div>
+                        <label for="email"
+                            class="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Email</label>
+                        <input type="email" id="email" name="email" required placeholder="Enter the Email"
+                            class="form-control w-full px-3 py-2 sm:py-2.5 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-brand/30 focus:border-brand transition-shadow">
+                    </div>
+                    <div>
+                        <label for="password"
+                            class="block text-[11px] sm:text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Password</label>
+                        <div class="relative">
+                            <input type="password" id="password" name="password" required
+                                placeholder="Enter the Password"
+                                class="form-control w-full px-3 py-2 sm:py-2.5 pr-10 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-2 focus:ring-brand/30 focus:border-brand transition-shadow">
+                            <button type="button" onclick="togglePassword()"
+                                class="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-brand transition-colors">
+                                <i id="eye-icon" class="bi bi-eye text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-gray-900 dark:bg-white hover:bg-black dark:hover:bg-gray-100 text-white dark:text-gray-900 font-bold py-2.5 px-4 rounded-xl transition-colors text-sm shadow-sm">
+                        Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
+    }
+
+    function validatePhoneLength() {
+        const phoneInput = document.getElementById('phone_number');
+        const phoneError = document.getElementById('phone-error');
+        if (phoneInput.value.length === 10) {
+            phoneError.classList.add('hidden');
+        } else if (phoneInput.value.length > 0) {
+            phoneError.classList.remove('hidden');
+        }
+    }
+
+    // Inline expand guest form — NO popup modal
+    let guestOpen = false;
+    function toggleGuestForm() {
+        const container = document.getElementById('guest-form-container');
+        const chevron = document.getElementById('guest-chevron');
+        guestOpen = !guestOpen;
+        if (guestOpen) {
+            container.style.maxHeight = container.scrollHeight + 20 + 'px';
+            chevron.style.transform = 'rotate(180deg)';
+            setTimeout(() => document.getElementById('full_name').focus(), 350);
+        } else {
+            container.style.maxHeight = '0';
+            chevron.style.transform = '';
+        }
+    }
+</script>
+{% endblock %}

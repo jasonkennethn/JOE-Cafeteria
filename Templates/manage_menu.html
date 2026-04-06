@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w-[95%] md:w-[85%] lg:w-[75%] mx-auto mt-8 flex flex-col gap-6 mb-16">
+    <div class="flex justify-between items-center bg-gradient-to-r from-brand to-orange-500 rounded-3xl p-6 sm:p-8 shadow-xl text-white">
+        <div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold mb-2">Menu Management</h1>
+            <p class="text-white/80 text-sm sm:text-lg font-medium m-0">Add or edit cafeteria items available for customers.</p>
+        </div>
+        <button onclick="openModal()" class="bg-white text-orange-600 px-6 py-3 rounded-2xl font-bold shadow-md hover:bg-orange-50 transition-colors flex items-center gap-2">
+            <i class="bi bi-plus-circle-fill"></i> Add New Item
+        </button>
+    </div>
+
+    <!-- Active Menu List -->
+    <div class="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 overflow-x-auto">
+        <table class="w-full text-left">
+            <thead>
+                <tr class="text-[11px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
+                    <th class="pb-3 px-2">Image</th>
+                    <th class="pb-3 px-2">Item Name</th>
+                    <th class="pb-3">Category</th>
+                    <th class="pb-3 text-right">Price</th>
+                    <th class="pb-3 text-center">Status</th>
+                    <th class="pb-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50 dark:divide-gray-700">
+                {% for item in menu_items %}
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="py-3 px-2">
+                        {% if item.image %}
+                        <img src="{{ item.image.url }}" class="w-12 h-12 object-cover rounded-xl border border-gray-200 dark:border-gray-600">
+                        {% else %}
+                        <div class="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-gray-400"><i class="bi bi-image"></i></div>
+                        {% endif %}
+                    </td>
+                    <td class="py-4 px-2">
+                        <span class="font-bold text-gray-900 dark:text-white block">{{ item.name }}</span>
+                        <span class="text-xs text-brand font-bold uppercase">{{ item.is_veg|yesno:"Veg,Non-Veg" }}</span>
+                    </td>
+                    <td class="py-4 text-gray-500 font-medium text-sm">{{ item.category }}</td>
+                    <td class="py-4 text-right font-black text-gray-900 dark:text-gray-200">₹{{ item.price }}</td>
+                    <td class="py-4 text-center">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" onchange="toggleItemField({{ item.id }}, 'is_available', this.checked)" class="sr-only peer" {% if item.is_available %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-500"></div>
+                        </label>
+                    </td>
+                    <td class="py-4 text-right pl-4">
+                        <button onclick="editItem({{ item.id }}, '{{ item.name|escapejs }}', '{{ item.description|escapejs }}', '{{ item.price }}', '{{ item.category }}', {{ item.is_veg|yesno:'true,false' }}, {{ item.prep_time_minutes }}, '{{ item.inventory_type }}', {{ item.current_stock }})" class="bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm"><i class="bi bi-pencil-square"></i> Edit</button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="py-12 text-center text-gray-500">No items available. Click Add New Item to begin.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="item-modal" class="fixed inset-0 z-[2000] hidden flex items-end sm:items-center justify-center sm:p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300 opacity-0 overflow-y-auto">
+    <div class="bg-white dark:bg-gray-800 rounded-t-3xl sm:rounded-3xl w-full sm:max-w-xl md:max-w-2xl overflow-hidden shadow-2xl transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 mx-auto sm:my-auto relative">
+        <!-- Bottom Sheet Handle (Mobile Only) -->
+        <div class="bottom-sheet-handle sm:hidden"></div>
+        <div class="absolute top-4 right-4">
+            <button onclick="closeModal()" class="w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-full hover:bg-red-100 hover:text-red-500 transition-colors"><i class="bi bi-x-lg"></i></button>
+        </div>
+        
+        <div class="p-8">
+            <h2 id="modal-title" class="text-2xl font-black text-gray-900 dark:text-white mb-6">Add New Item</h2>
+            
+            <form id="item-form" method="POST" action="{% url 'add_edit_menu_item' %}" enctype="multipart/form-data" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="item_id" id="form-item-id" value="">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Item Name</label>
+                        <input type="text" name="name" id="form-name" required class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Price (₹)</label>
+                        <input type="number" step="0.01" name="price" id="form-price" required class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Description</label>
+                    <textarea name="description" id="form-desc" rows="3" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Category</label>
+                        <select name="category" id="form-category" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                            {% for val, label in categories %}
+                                <option value="{{ val }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Type</label>
+                        <select name="is_veg" id="form-is-veg" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-green-600 dark:text-green-400 transition-all focus:ring-2 focus:ring-brand">
+                            <option value="true">Veg</option>
+                            <option value="false">Non-Veg</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Inventory Flow</label>
+                        <select name="inventory_type" id="form-inventory" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                            <option value="continuous">Continuous</option>
+                            <option value="batch">Batch / Made to Order</option>
+                            <option value="fixed">Fixed Stock</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Current Purchasing Stock</label>
+                        <input type="number" name="current_stock" id="form-stock" value="100" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Prep Time (Mins)</label>
+                        <input type="number" name="prep_time_minutes" id="form-prep" value="0" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center gap-4">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="is_available_chk" id="form-available" value="true" class="sr-only peer" checked>
+                        <input type="hidden" name="is_available" id="form-available-hidden" value="true">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-500"></div>
+                        <span class="ml-3 text-sm font-bold text-gray-900 dark:text-white">Is Available</span>
+                    </label>
+                </div>
+                
+                <div class="mt-4">
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Item Image</label>
+                    <input type="file" name="image" id="form-image" accept="image/*" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white transition-all focus:ring-2 focus:ring-brand">
+                </div>
+
+                <div class="mt-8">
+                    <button type="submit" class="w-full bg-brand hover:bg-orange-600 text-white font-black text-xl py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all"><i class="bi bi-cloud-arrow-up-fill mr-2"></i> Save Item Parameters</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const modal = document.getElementById('item-modal');
+    const modalContainer = modal.querySelector('div');
+    const form = document.getElementById('item-form');
+    
+    document.getElementById('form-available').addEventListener('change', function(e) {
+        document.getElementById('form-available-hidden').value = e.target.checked ? 'true' : 'false';
+    });
+
+    function openModal() {
+        form.reset();
+        document.getElementById('form-item-id').value = '';
+        document.getElementById('modal-title').textContent = 'Add New Item';
+        document.getElementById('form-available-hidden').value = 'true';
+        document.getElementById('form-available').checked = true;
+        
+        modal.classList.remove('hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            modalContainer.classList.remove('translate-y-full', 'sm:scale-95');
+        }, 10);
+    }
+    
+    function closeModal() {
+        modal.classList.add('opacity-0');
+        if (window.innerWidth < 640) {
+            modalContainer.classList.add('translate-y-full');
+        } else {
+            modalContainer.classList.add('sm:scale-95');
+        }
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    }
+    
+    function editItem(id, name, desc, price, category, isVeg, prep, invType, stock) {
+        document.getElementById('form-item-id').value = id;
+        document.getElementById('form-name').value = name;
+        document.getElementById('form-desc').value = desc;
+        document.getElementById('form-price').value = price;
+        document.getElementById('form-category').value = category;
+        document.getElementById('form-is-veg').value = isVeg ? 'true' : 'false';
+        document.getElementById('form-prep').value = prep;
+        document.getElementById('form-inventory').value = invType;
+        document.getElementById('form-stock').value = stock;
+        
+        document.getElementById('modal-title').textContent = 'Edit Menu Item';
+        openModal();
+    }
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = form.querySelector('button[type="submit"]');
+        btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin mr-2"></i> Saving...';
+        btn.disabled = true;
+        
+        const formData = new FormData(form);
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'ok') {
+                btn.innerHTML = '<i class="bi bi-check-circle-fill mr-2"></i> Saved';
+                btn.classList.add('bg-green-500');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        });
+    });
+    
+    function toggleItemField(itemId, field, value) {
+        fetch('{% url "toggle_menu_item" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrftoken,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ item_id: itemId, field: field, value: value })
+        });
+    }
+
+    // WebSocket for real-time menu sync across tabs
+    let menuSocket = null;
+    function connectMenuWS() {
+        const wsScheme = window.location.protocol === "https:" ? "wss" : "ws";
+        const wsUrl = wsScheme + "://" + window.location.host + "/ws/kitchen/";
+        menuSocket = new WebSocket(wsUrl);
+
+        menuSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            console.log("Menu WS signal:", data);
+            if (data.type === 'menu_update' || data.type === 'refresh') {
+                refreshMenuTable();
+            }
+        };
+
+        menuSocket.onclose = function(e) {
+            console.warn('Menu WS closed. Retrying in 3s...');
+            setTimeout(connectMenuWS, 3000);
+        };
+
+        menuSocket.onerror = function(err) {
+            console.error('Menu WS error:', err);
+            menuSocket.close();
+        };
+    }
+
+    async function refreshMenuTable() {
+        try {
+            const response = await fetch(window.location.href + '?cache_bust=' + Date.now());
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const oldTable = document.querySelector('table');
+            const newTable = doc.querySelector('table');
+            if (oldTable && newTable) {
+                oldTable.querySelector('tbody').innerHTML = newTable.querySelector('tbody').innerHTML;
+            }
+        } catch(err) {
+            console.error('Menu table refresh failed:', err);
+        }
+    }
+
+    connectMenuWS();
+</script>
+{% endblock %}

@@ -1,0 +1,377 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="{% if request.user.dark_theme or request.session.dark_theme %}dark{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="JOE Cafeteria — Order your favorite meals in seconds. Real-time tracking, live kitchen updates, and premium dining experience.">
+    <meta name="theme-color" content="#fb923c">
+    <title>JOE Cafeteria</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            DEFAULT: '#fb923c', // Orange-400
+                            dark: '#ea580c',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom Fluid Styling -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        body {
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
+        .navbar-locked {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .dark .bg-white { background-color: #1f2937 !important; border-color: #374151 !important;}
+        .dark .text-gray-900 { color: #f9fafb !important;}
+        .dark .text-gray-500 { color: #9ca3af !important;}
+        
+        .nav-link-custom {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .nav-link-custom:hover {
+            color: #fb923c;
+        }
+        
+        #search-suggestions {
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+            max-height: 450px;
+            overflow-y: auto;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        /* Splash Screen */
+        #joe-splash {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #fb923c 0%, #ea580c 50%, #c2410c 100%);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+        #joe-splash.splash-out {
+            opacity: 0;
+            transform: scale(1.05);
+            pointer-events: none;
+        }
+        #joe-splash .splash-logo {
+            animation: splashPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes splashPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        @keyframes splashFadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .splash-tagline {
+            animation: splashFadeUp 0.8s ease 0.4s backwards;
+        }
+        .splash-dots {
+            display: flex;
+            gap: 8px;
+            animation: splashFadeUp 0.8s ease 0.8s backwards;
+        }
+        .splash-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.6);
+            animation: dotBounce 1.2s ease-in-out infinite;
+        }
+        .splash-dots span:nth-child(2) { animation-delay: 0.15s; }
+        .splash-dots span:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes dotBounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 overflow-x-hidden selection:bg-orange-100 selection:text-brand dark:selection:bg-orange-500/20">
+
+    <!-- Splash Screen (first visit only) -->
+    <div id="joe-splash" style="display:none;">
+        <div class="splash-logo mb-6">
+            <div style="width:80px;height:80px;border-radius:24px;background:rgba(255,255,255,0.2);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;box-shadow:0 20px 60px rgba(0,0,0,0.15);">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14h14v2a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4v-2z"></path><path d="M2 14h20"></path><path d="M7 6c0-2-1-3-2-4"></path><path d="M12 6c0-2-1-3-2-4"></path><path d="M17 6c0-2-1-3-2-4"></path></svg>
+            </div>
+        </div>
+        <h1 style="font-family:'Inter',sans-serif;font-weight:900;font-size:2.5rem;color:white;letter-spacing:-0.03em;margin:0 0 4px 0;">JOE<span style="opacity:0.7">.</span></h1>
+        <p class="splash-tagline" style="font-family:'Inter',sans-serif;font-weight:600;font-size:0.95rem;color:rgba(255,255,255,0.85);margin:0 0 32px 0;letter-spacing:0.05em;">Taste the Excellence</p>
+        <div class="splash-dots">
+            <span></span><span></span><span></span>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var splash = document.getElementById('joe-splash');
+            if (!splash) return;
+            if (!localStorage.getItem('joe_splash_v2')) {
+                splash.style.display = 'flex';
+                document.body.style.overflow = 'hidden';
+                localStorage.setItem('joe_splash_v2', '1');
+                setTimeout(function() {
+                    splash.classList.add('splash-out');
+                    document.body.style.overflow = '';
+                    setTimeout(function() { splash.remove(); }, 600);
+                }, 2200);
+            } else {
+                splash.remove();
+            }
+        })();
+    </script>
+    <!-- CSRF Token for AJAX requests -->
+    {% csrf_token %}
+    <!-- Navbar -->
+    <nav class="navbar-locked bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-14 md:h-16 gap-3 sm:gap-6">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center transition-all duration-300" id="nav-logo-wrapper">
+                    <a href="{% if user.is_authenticated and user.role != 'Customer' %}{% url 'dashboard' %}{% else %}{% url 'menu' %}{% endif %}" class="flex items-center gap-1.5 text-decoration-none transition-transform hover:scale-105 active:scale-95 duration-300">
+                        <div class="w-8 h-8 rounded-xl bg-brand flex items-center justify-center shadow-lg shadow-orange-500/20">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 14h14v2a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4v-2z"></path><path d="M2 14h20"></path><path d="M7 6c0-2-1-3-2-4"></path><path d="M12 6c0-2-1-3-2-4"></path><path d="M17 6c0-2-1-3-2-4"></path></svg>
+                        </div>
+                        <span class="text-xl font-black tracking-tight text-gray-900 dark:text-white">JOE<span class="text-brand">.</span></span>
+                    </a>
+                </div>
+
+                {% if request.path == '/' or request.path == '/menu/' %}
+                    {% if not request.user.is_authenticated or request.user.role == 'Customer' or request.user.role == 'Cashier' %}
+                        <div class="flex-1 max-w-sm sm:max-w-lg relative group transition-all duration-300" id="search-container-wrapper">
+                            <div class="relative flex items-center w-full">
+                                <button id="search-close-mobile" class="hidden mr-2 text-brand text-xl flex-shrink-0 transition-all hover:scale-110 active:scale-95">
+                                    <i class="bi bi-arrow-left"></i>
+                                </button>
+                                <div class="relative w-full">
+                                    <i class="bi bi-search absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-brand transition-colors text-[10px] md:text-sm" id="search-icon-static"></i>
+                                    <input type="text" id="global-search" class="form-control w-full pl-9 pr-4 py-1.5 md:py-2 text-xs md:text-sm rounded-2xl bg-gray-100 border-transparent hover:bg-gray-200 focus:bg-white focus:border-brand focus:ring-4 focus:ring-orange-500/10 dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:hover:bg-gray-750 transition-all shadow-none" placeholder="Search delicious food..." autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Search Suggestions -->
+                        <div id="search-suggestions" class="absolute top-full left-0 right-0 bg-white/95 dark:bg-gray-800/95 mt-2 rounded-[1.5rem] hidden z-[2000] border border-gray-100 dark:border-gray-700 shadow-2xl overflow-hidden min-w-full">
+                            <div id="suggestions-list" class="py-2">
+                                <!-- Items populated via JS -->
+                            </div>
+                        </div>
+                    {% else %}
+                    <div class="flex-1"></div>
+                    {% endif %}
+                {% else %}
+                <div class="flex-1"></div>
+                {% endif %}
+
+                <!-- Right side -->
+                <div class="flex-shrink-0 flex items-center gap-2 md:gap-4 transition-all duration-300" id="nav-actions-wrapper">
+                    <!-- Push Registration (Manual Prompt if needed) -->
+                    <button id="enable-push" class="hidden p-2 text-brand hover:scale-110 transition-transform" title="Keep alerts on when browser is closed">
+                        <i class="bi bi-bell-plus"></i>
+                    </button>
+
+                    <!-- Notifications -->
+                    <a href="{% url 'notifications' %}" class="relative p-2 text-gray-400 hover:text-brand dark:text-gray-500 transition-all flex items-center">
+                        <i class="bi bi-bell-fill text-lg"></i>
+                        {% if unread_notifications_count > 0 %}
+                        <span id="global-notif-count" class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center bg-red-500 rounded-full text-[9px] font-black text-white border-2 border-white dark:border-gray-900 shadow-sm">{{ unread_notifications_count }}</span>
+                        {% endif %}
+                    </a>
+                    
+                    <!-- Profile / Login -->
+                    {% if user.is_authenticated or is_guest_active %}
+                        <a href="{% url 'profile' %}" class="flex items-center gap-2 p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
+                            {% if user.is_authenticated and user.profile_pic %}
+                                <img class="h-8 w-8 rounded-full object-cover border border-gray-200 dark:border-gray-700" src="{{ user.profile_pic.url }}" alt="">
+                            {% else %}
+                                <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-brand to-orange-300 flex items-center justify-center text-white shadow-md"><i class="bi bi-person-fill"></i></div>
+                            {% endif %}
+                        </a>
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn-smooth bg-gray-100 dark:bg-gray-800 px-4 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:bg-brand hover:text-white transition-all transform active:scale-95">
+                            <i class="bi bi-person-circle mr-1.5"></i> <span>Login</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="fluid-container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- CSRF Token setup for AJAX -->
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- WebSocket Handler for Real-time Updates -->
+    <script src="{% static 'js/websocket-handler.js' %}"></script>
+
+    {% if user.is_authenticated and user.role != 'Customer' %}
+    <!-- Global Scanner for Staff -->
+    {% include 'includes/scanner_modals.html' %}
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="{% static 'js/scanner-core.js' %}"></script>
+    <script>
+        scannerConfig.csrfToken = "{{ csrf_token }}";
+        scannerConfig.scanUrl = "{% url 'scan_qr' %}";
+        scannerConfig.serveUrl = "{% url 'update_item_status' %}";
+    </script>
+    {% endif %}
+
+    {% block scripts %}{% endblock %}
+
+    <script>
+        const searchInput = document.getElementById('global-search');
+        const searchContainer = document.getElementById('search-container-wrapper');
+        const searchClose = document.getElementById('search-close-mobile');
+        const navLogo = document.getElementById('nav-logo-wrapper');
+        const navActions = document.getElementById('nav-actions-wrapper');
+
+        if (searchInput) {
+            searchInput.addEventListener('focus', () => {
+                if (window.innerWidth < 640) {
+                    if(searchContainer) searchContainer.classList.add('navbar-search-active');
+                    if(searchClose) searchClose.classList.remove('hidden');
+                    if(navLogo) navLogo.classList.add('hidden');
+                    if(navActions) navActions.classList.add('hidden');
+                }
+            });
+        }
+
+        if (searchClose) {
+            searchClose.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if(searchContainer) searchContainer.classList.remove('navbar-search-active');
+                searchClose.classList.add('hidden');
+                if(navLogo) navLogo.classList.remove('hidden');
+                if(navActions) navActions.classList.remove('hidden');
+                if(searchInput) {
+                    searchInput.value = '';
+                    searchInput.dispatchEvent(new Event('input'));
+                    searchInput.blur();
+                }
+            });
+        }
+
+        /* ─── Service Worker & Web Push Registration ────────────────── */
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/static/js/sw.js').then(function(reg) {
+                    console.log('Service Worker Registered');
+                    
+                    const pushBtn = document.getElementById('enable-push');
+                    
+                    function urlBase64ToUint8Array(base64String) {
+                        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+                        const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+                        const rawData = window.atob(base64);
+                        const outputArray = new Uint8Array(rawData.length);
+                        for (let i = 0; i < rawData.length; ++i) {
+                            outputArray[i] = rawData.charCodeAt(i);
+                        }
+                        return outputArray;
+                    }
+                    
+                    function subscribeUser() {
+                        reg.pushManager.subscribe({
+                            userVisibleOnly: true,
+                            applicationServerKey: urlBase64ToUint8Array("{{ VAPID_PUBLIC_KEY }}")
+                        }).then(function(sub) {
+                            saveSubscription(sub);
+                            if (pushBtn) pushBtn.classList.add('hidden');
+                        }).catch(function(err) {
+                            console.error('Failed to subscribe: ', err);
+                        });
+                    }
+
+                    reg.pushManager.getSubscription().then(function(sub) {
+                        if (!sub) {
+                            if (pushBtn) pushBtn.classList.remove('hidden');
+                            
+                            // Automatically ask for permission when app opens
+                            if (Notification.permission === 'default' || Notification.permission === 'granted') {
+                                Notification.requestPermission().then(function(permission) {
+                                    if (permission === 'granted') {
+                                        subscribeUser();
+                                    }
+                                });
+                            }
+                        }
+                    });
+                    
+                    if (pushBtn) {
+                        pushBtn.addEventListener('click', function() {
+                            Notification.requestPermission().then(function(permission) {
+                                if (permission === 'granted') {
+                                    subscribeUser();
+                                } else {
+                                    alert("Please enable notifications in your browser settings.");
+                                }
+                            });
+                        });
+                    }
+                });
+            });
+        }
+
+        function saveSubscription(sub) {
+            const keys = sub.toJSON().keys;
+            fetch('/api/notifications/save-subscription/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify({
+                    endpoint: sub.endpoint,
+                    p256dh: keys.p256dh,
+                    auth: keys.auth
+                })
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,597 @@
+/* ═══════════════════════════════════════════════════════════════
+   JOE Cafeteria — Production Design System
+   Mobile-first, viewport-adaptive, premium UI
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    --brand-primary: #fb923c;
+    --brand-dark: #ea580c;
+    --bg-light: #f8fafc;
+    --text-light: #1e293b;
+    --bg-dark: #0f172a;
+    --text-dark: #f1f5f9;
+    --card-bg-light: #ffffff;
+    --card-bg-dark: #1e293b;
+    --transition-speed: 0.3s;
+    --font-stack: 'Inter', system-ui, -apple-system, sans-serif;
+    --radius-sm: 0.75rem;
+    --radius-md: 1rem;
+    --radius-lg: 1.5rem;
+    --radius-xl: 2rem;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-card-hover: 0 20px 40px -5px rgba(0,0,0,0.1);
+    --shadow-elevated: 0 30px 70px -15px rgba(0,0,0,0.2);
+    --premium-bezier: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* MNC Fluid Spacing (8px units) */
+    --u-1: 0.25rem;
+    --u-2: 0.5rem;
+    --u-3: 0.75rem;
+    --u-4: 1rem;
+    --u-6: 1.5rem;
+    --u-8: 2rem;
+
+    --space-page: var(--u-4);
+    --space-card: var(--u-3);
+    --grid-gap: var(--u-4);
+    --grid-min: 160px;
+}
+
+/* ── 2. Reset & Typography ─────────────────────────────────── */
+*, *::before, *::after {
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    font-family: var(--font-stack);
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    transition: background-color 0.4s ease, color 0.4s ease;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+body.dark, html.dark body {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+}
+
+/* ── 3. Layout ─────────────────────────────────────────────── */
+.fluid-container {
+    width: 92%;
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: var(--u-6) 0;
+}
+
+/* ── 4. Glassmorphism ──────────────────────────────────────── */
+.glass-panel {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(20px) saturate(190%);
+    -webkit-backdrop-filter: blur(20px) saturate(190%);
+    border: 1px solid rgba(255,255,255,0.45);
+}
+.dark .glass-panel {
+    background: rgba(15,23,42,0.85);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.shadow-elevated {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* ── 5. Cards ──────────────────────────────────────────────── */
+.dynamic-card {
+    background-color: var(--card-bg-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    transition: all 0.4s var(--premium-bezier);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: var(--shadow-card);
+    animation: cardFadeIn 0.5s var(--premium-bezier) backwards;
+}
+.dark .dynamic-card {
+    background-color: var(--card-bg-dark);
+    border-color: rgba(255,255,255,0.05);
+}
+
+.dynamic-card:hover {
+    transform: translateY(-8px) scale(1.01);
+    box-shadow: var(--shadow-card-hover);
+    border-color: rgba(251,146,60,0.3);
+}
+
+/* Staggered entrance */
+.dynamic-card:nth-child(1) { animation-delay: 0.03s; }
+.dynamic-card:nth-child(2) { animation-delay: 0.06s; }
+.dynamic-card:nth-child(3) { animation-delay: 0.09s; }
+.dynamic-card:nth-child(4) { animation-delay: 0.12s; }
+.dynamic-card:nth-child(5) { animation-delay: 0.15s; }
+.dynamic-card:nth-child(6) { animation-delay: 0.18s; }
+.dynamic-card:nth-child(7) { animation-delay: 0.21s; }
+.dynamic-card:nth-child(8) { animation-delay: 0.24s; }
+
+@keyframes cardFadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Card image */
+.card-img-wrapper {
+    width: 100%;
+    padding-top: 52%;
+    position: relative;
+    overflow: hidden;
+    background: #f1f5f9;
+}
+.dark .card-img-wrapper { background: #0f172a; }
+
+.card-img-wrapper img, .card-img-wrapper .placeholder {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.6s cubic-bezier(0.2,0.8,0.2,1);
+}
+
+/* Frozen state */
+.item-frozen {
+    filter: grayscale(1) opacity(0.45);
+    pointer-events: none !important;
+    transition: all var(--transition-speed);
+}
+.item-frozen .btn-brand-fluid,
+.item-frozen .cart-controls { display: none !important; }
+
+/* ── 6. Buttons ────────────────────────────────────────────── */
+.btn-smooth {
+    border-radius: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: all 0.3s var(--premium-bezier);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    outline: none;
+    padding: 0.625rem 1.25rem;
+}
+.btn-smooth:active { transform: scale(0.95); }
+
+.btn-brand-fluid {
+    background: linear-gradient(135deg, #fb923c, #f97316);
+    color: white;
+    box-shadow: 0 10px 20px -5px rgba(249,115,22,0.3);
+}
+.btn-brand-fluid:hover {
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    box-shadow: 0 15px 25px -5px rgba(249,115,22,0.4);
+    color: white;
+}
+
+/* ── 7. Grid ───────────────────────────────────────────────── */
+.fluid-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--grid-min), 1fr));
+    gap: var(--grid-gap);
+}
+
+/* ── 8. Floating Cart ──────────────────────────────────────── */
+#floating-cart {
+    background: var(--card-bg-light);
+    border: 1px solid rgba(0,0,0,0.08);
+    backdrop-filter: blur(12px);
+}
+.dark #floating-cart {
+    background: var(--card-bg-dark);
+    border-color: rgba(255,255,255,0.1);
+}
+
+/* ── 9. Item Modal — Bottom Sheet on Mobile ────────────────── */
+#item-modal .glass-panel {
+    transition: transform 0.4s var(--premium-bezier), opacity 0.3s ease;
+    box-shadow: var(--shadow-elevated);
+}
+
+/* Glass Handle for Bottom Sheets */
+.bottom-sheet-handle {
+    width: 48px;
+    height: 5px;
+    background: rgba(0,0,0,0.1);
+    border-radius: 99px;
+    margin: 14px auto 6px;
+    flex-shrink: 0;
+    opacity: 0.4;
+}
+.dark .bottom-sheet-handle {
+    background: rgba(255,255,255,0.25);
+}
+
+/* ── 10. Notification Inline Expand ────────────────────────── */
+.notif-expandable {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0.35s ease;
+    padding: 0 1rem;
+}
+.notif-expandable.expanded {
+    max-height: 200px;
+    padding: 0.75rem 1rem 1rem;
+}
+
+/* ── 11. Scrollbar ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(156,163,175,0.25);
+    border-radius: 10px;
+}
+.dark ::-webkit-scrollbar-thumb { background: rgba(75,85,99,0.25); }
+
+/* ── 12. Smooth Page Transition ────────────────────────────── */
+main { animation: cardFadeIn 0.35s ease; }
+
+/* ── 13. Skeleton Loading ──────────────────────────────────── */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.skeleton-loading {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-sm);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE VIEW (< 640px) — Compact, touch-optimized
+   ═══════════════════════════════════════════════════════════════ */
+@media (max-width: 639px) {
+    :root {
+        --space-page: 0.75rem;
+        --space-card: 0.5rem;
+        --grid-gap: 0.5rem;
+        --grid-min: 145px;
+        --radius-lg: 1rem;
+    }
+
+    body { font-size: 13px; }
+
+    .fluid-container { width: 96%; padding: 0.5rem 0; }
+
+    /* Tighter grid */
+    .fluid-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    /* Compact cards — no hover lift */
+    .dynamic-card { border-radius: var(--radius-md); }
+    .dynamic-card:hover,
+    .dynamic-card:focus { transform: none; box-shadow: var(--shadow-card); }
+    .dynamic-card:active { transform: scale(0.97); transition: transform 0.1s; }
+
+    /* Shorter card images on mobile */
+    .card-img-wrapper { padding-top: 48%; }
+
+    /* Compact card padding */
+    .dynamic-card .p-4 { padding: 0.625rem 0.75rem !important; }
+    .dynamic-card h3 { font-size: 0.875rem !important; letter-spacing: -0.01em !important; }
+    .dynamic-card .text-base { font-size: 0.875rem !important; font-weight: 700 !important; }
+    .dynamic-card .text-xs { font-size: 0.6875rem !important; opacity: 0.8; }
+    .dynamic-card .text-\[9px\] { font-size: 9px !important; }
+
+    /* Item modal → Bottom Sheet */
+    #item-modal {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+    #item-modal .glass-panel {
+        border-radius: 1.25rem 1.25rem 0 0 !important;
+        max-height: 85vh !important;
+        padding-top: 0 !important;
+    }
+    #item-modal #modal-image-container {
+        height: 160px !important;
+    }
+    #item-modal .p-6,
+    #item-modal .sm\:p-8 {
+        padding: 1rem 1.25rem !important;
+    }
+    #item-modal #modal-item-name { font-size: 1.25rem !important; }
+    #item-modal #modal-item-desc { font-size: 0.8125rem !important; margin-bottom: 1rem !important; }
+    #item-modal #modal-add-btn { 
+        padding: 0.875rem !important; 
+        font-size: 0.875rem !important;
+        border-radius: 0.875rem !important;
+    }
+    #item-modal .gap-4 { gap: 0.5rem !important; }
+    #item-modal button[onclick="updateModalQty(-1)"],
+    #item-modal button[onclick="updateModalQty(1)"] {
+        width: 2.25rem !important; height: 2.25rem !important;
+    }
+
+    /* Floating cart — compact */
+    #floating-cart {
+        bottom: 0.5rem !important;
+        width: 94% !important;
+        padding: 0.5rem 0.875rem !important;
+        border-radius: 1rem !important;
+    }
+
+    /* Guest modal — also bottom sheet */
+    #guest-modal {
+        align-items: flex-end !important;
+        padding: 0 !important;
+    }
+    #guest-modal > div {
+        border-radius: 1.25rem 1.25rem 0 0 !important;
+        max-height: 90vh !important;
+        padding: 1.25rem 1.25rem 2rem !important;
+    }
+
+    /* Notification modal — compact */
+    #notif-modal > div {
+        width: 94% !important;
+        border-radius: 1.25rem !important;
+    }
+    #notif-modal .p-8 { padding: 1.25rem !important; }
+    #notif-modal h2 { font-size: 1.125rem !important; }
+    #notif-modal button:last-child { padding: 0.75rem !important; font-size: 0.875rem !important; }
+
+    /* Dashboard adjustments */
+    .dashboard-hero { padding: 1.25rem !important; border-radius: 1.25rem !important; }
+    .dashboard-hero h1 { font-size: 1.375rem !important; }
+    .dashboard-hero p { font-size: 0.75rem !important; }
+
+    /* Profile page */
+    .max-w-xl { width: 96% !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   TABLET VIEW (640px – 1024px) — Balanced layout
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 640px) and (max-width: 1024px) {
+    :root {
+        --space-page: 1.25rem;
+        --grid-gap: 0.875rem;
+        --grid-min: 200px;
+    }
+
+    body { font-size: 14.5px; }
+
+    .fluid-container { width: 92%; }
+
+    .fluid-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.875rem;
+    }
+
+    .card-img-wrapper { padding-top: 52%; }
+
+    /* Cards — subtle hover */
+    .dynamic-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-card-hover);
+    }
+
+    /* Image zoom on tablet hover */
+    .dynamic-card:hover .card-img-wrapper img {
+        transform: scale(1.03);
+    }
+
+    /* Item modal — centered, max width */
+    #item-modal .glass-panel {
+        max-width: 480px !important;
+        border-radius: 1.5rem !important;
+    }
+    #item-modal #modal-image-container {
+        height: 220px !important;
+    }
+
+    /* Dashboard */
+    .dashboard-hero { padding: 1.5rem !important; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP VIEW (> 1024px) — Full experience
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 1025px) {
+    :root {
+        --space-page: 2rem;
+        --grid-gap: 1.25rem;
+        --grid-min: 250px;
+    }
+
+    body { font-size: 15px; }
+
+    .fluid-container { width: 90%; }
+
+    .fluid-grid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.25rem;
+    }
+
+    .card-img-wrapper { padding-top: 56.25%; }
+
+    /* Full hover experience */
+    .dynamic-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-card-hover);
+    }
+    .dynamic-card:hover .card-img-wrapper img {
+        transform: scale(1.04);
+    }
+
+    /* Smooth button hover */
+    .btn-smooth:hover { filter: brightness(1.08); }
+    .btn-brand-fluid:hover { transform: translateY(-1px); }
+
+    /* Item modal — larger */
+    #item-modal .glass-panel {
+        max-width: 520px !important;
+        border-radius: 2rem !important;
+    }
+    #item-modal #modal-image-container {
+        height: 280px !important;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LARGE DESKTOP (> 1440px) — Spacious layout
+   ═══════════════════════════════════════════════════════════════ */
+@media (min-width: 1441px) {
+    :root {
+        --grid-min: 280px;
+        --grid-gap: 1.5rem;
+    }
+    .fluid-container { max-width: 1600px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Touch Device Overrides
+   ═══════════════════════════════════════════════════════════════ */
+@media (hover: none) and (pointer: coarse) {
+    .dynamic-card:hover {
+        transform: none;
+        box-shadow: var(--shadow-card);
+    }
+    .dynamic-card:active {
+        transform: scale(0.97);
+        transition: transform 0.1s ease;
+    }
+    .btn-smooth:hover { filter: none; }
+    .btn-brand-fluid:hover { transform: none; }
+}
+
+/* ── 14. Focused Navbar Search (MNC Standard) ────────────────── */
+@media (max-width: 639px) {
+    /* Focus State within the Navbar */
+    .navbar-search-active {
+        position: absolute !important;
+        left: 0 !important;
+        right: 0 !important;
+        top: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        background: inherit !important;
+        display: flex !important;
+        align-items: center !important;
+        z-index: 10 !important;
+    }
+
+    .navbar-search-active #global-search {
+        background: rgba(0,0,0,0.05) !important;
+        height: 2.75rem !important;
+        font-size: 0.95rem !important;
+        border-radius: 12px !important;
+    }
+    .dark .navbar-search-active #global-search {
+        background: rgba(255,255,255,0.08) !important;
+    }
+
+    .navbar-search-active #search-close-mobile {
+        display: flex !important;
+    }
+
+    #nav-logo-wrapper.hidden, 
+    #nav-actions-wrapper.hidden {
+        display: none !important;
+    }
+
+    /* Suggestions in Mobile Focus */
+    .navbar-search-active + #search-suggestions,
+    .navbar-search-active ~ #search-suggestions {
+        position: fixed !important;
+        top: 3.5rem !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100% !important;
+        border-radius: 0 !important;
+        margin-top: 0 !important;
+        z-index: 1000 !important;
+        background: var(--card-bg-light) !important;
+        overflow-y: auto !important;
+    }
+    .dark .navbar-search-active + #search-suggestions {
+        background: var(--bg-dark) !important;
+    }
+}
+
+/* ── 15. Toast System ─────────────────────────────────────── */
+#global-toast-container {
+    transition: all 0.4s var(--premium-bezier);
+}
+
+.toast-premium {
+    backdrop-filter: blur(25px) saturate(200%);
+    -webkit-backdrop-filter: blur(25px) saturate(200%);
+    background: rgba(255,255,255,0.85);
+    border: 1px solid rgba(251,146,60,0.25);
+    animation: toastSlideIn 0.5s var(--premium-bezier) forwards;
+}
+.dark .toast-premium {
+    background: rgba(15,23,42,0.9);
+}
+
+@keyframes toastSlideIn {
+    from { opacity: 0; transform: translateX(100%) scale(0.9); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* ── 16. ADDED MNC GRADE MICRO-ANIMATIONS ────────────────── */
+.hover-lift {
+    transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.25s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -8px rgba(251, 146, 60, 0.4);
+}
+
+.pulse-glow {
+    animation: pulseGlow 2s infinite alternate;
+}
+@keyframes pulseGlow {
+    from { box-shadow: 0 0 0 rgba(251, 146, 60, 0); }
+    to { box-shadow: 0 0 15px rgba(251, 146, 60, 0.5); }
+}
+
+/* Glass inputs */
+.glass-input {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+.glass-input:focus {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: #fb923c;
+    box-shadow: 0 0 0 4px rgba(251, 146, 60, 0.1);
+}
+.dark .glass-input {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(255, 255, 255, 0.05);
+}
+.dark .glass-input:focus {
+    background: rgba(15, 23, 42, 0.9);
+    border-color: #fb923c;
+}

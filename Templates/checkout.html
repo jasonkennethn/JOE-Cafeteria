@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="fluid-container max-w-2xl mx-auto py-12">
+    <div class="glass-panel dynamic-card rounded-3xl overflow-hidden">
+        <!-- JOE Header Simulation -->
+        <div class="bg-brand p-6 flex items-center justify-between text-white">
+            <div class="flex items-center gap-3">
+                <i class="bi bi-bag-check-fill text-3xl"></i>
+                <h2 class="text-2xl font-bold m-0 italic tracking-tight">JOE<span class="opacity-50">.</span>Checkout</h2>
+            </div>
+            <div class="font-black text-2xl">₹{{ cart.total_price|default:"0.00" }}</div>
+        </div>
+
+        <div class="p-4 sm:p-8 pb-10 sm:pb-12">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Payment Details</h3>
+            
+            <form method="POST" action="{% url 'checkout_submit' %}">
+                {% csrf_token %}
+                
+                {% if request.user.role == 'Cashier' %}
+                <!-- POS Cashier Override -->
+                <div class="space-y-6 mb-8 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-6 rounded-2xl relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-24 h-24 bg-brand rounded-bl-[100%] opacity-10"></div>
+                    <h4 class="font-black text-gray-900 dark:text-white text-lg flex items-center gap-2"><i class="bi bi-display text-brand"></i> Counter Override Active</h4>
+                    <p class="text-sm font-medium text-gray-500 m-0 leading-relaxed">You are placing this order on behalf of a physical Walk-up Customer. Select the payment method they utilized at the counter.</p>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <label class="cursor-pointer border-2 border-brand bg-brand/5 dark:bg-brand/10 p-4 rounded-xl flex items-center gap-3 shadow-inner hover:bg-brand/10 transition-colors">
+                            <input type="radio" name="payment_method" value="Cash" class="w-5 h-5 text-brand" checked>
+                            <span class="font-bold text-gray-900 dark:text-white text-lg">Cash</span>
+                        </label>
+                        <label class="cursor-pointer border-2 border-brand bg-brand/5 dark:bg-brand/10 p-4 rounded-xl flex items-center gap-3 shadow-inner hover:bg-brand/10 transition-colors">
+                            <input type="radio" name="payment_method" value="Counter UPI" class="w-5 h-5 text-brand">
+                            <span class="font-bold text-gray-900 dark:text-white text-lg">UPI</span>
+                        </label>
+                    </div>
+                </div>
+                <!-- End POS Cashier Override -->
+                {% else %}
+                <!-- Normal Customer Mockup -->
+                <div class="space-y-4 mb-8">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Card Number</label>
+                        <div class="relative">
+                            <input type="text" class="form-control w-full px-4 py-3 pl-12 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="4111 1111 1111 1111">
+                            <i class="bi bi-credit-card absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expiry Date</label>
+                            <input type="text" class="form-control w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="MM/YY">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">CVV</label>
+                            <input type="text" class="form-control w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="123">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name on card</label>
+                        <input type="text" class="form-control w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="John Doe">
+                    </div>
+                </div>
+                {% endif %}
+
+                <button type="submit" class="w-full btn-smooth font-black text-xl py-4 rounded-2xl {% if request.user.role == 'Cashier' %}bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900{% else %}bg-brand hover:bg-brand-dark text-white shadow-lg shadow-brand/30{% endif %} hover:scale-[1.02] active:scale-95 transition-all">
+                    {% if request.user.role == 'Cashier' %}<i class="bi bi-receipt"></i> Print Receipt{% else %}Complete Payment & Order{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Payment UI mock scripts go here if needed.
+</script>
+{% endblock %}
